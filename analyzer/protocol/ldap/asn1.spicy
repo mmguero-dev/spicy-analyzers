@@ -115,15 +115,15 @@ type oidnibble = unit {
 type ASN1OBJECTIDENTIFIER = unit(len: uint64) {
   var oid: vector<uint64>;
   var temp: uint64;
-  var oidstring: bytes;
+  var oidstring: string;
 
   first: uint8 if ( len >= 1) {
     self.temp = self.first / 40;
     self.oid.push_back( self.temp );
-    self.oidstring = spicy::fmt (b"%d", (self.temp, 1));
+    self.oidstring = "%d" % (self.temp);
     self.temp = self.first % 40;
     self.oid.push_back( self.temp );
-    self.oidstring += spicy::fmt(b".%d", (self.temp, 1));
+    self.oidstring = self.oidstring + ".%d" % (self.temp);
     self.temp = 0;
   }
 
@@ -131,7 +131,7 @@ type ASN1OBJECTIDENTIFIER = unit(len: uint64) {
     self.temp = ( self.temp<<7 ) | $$.data.num;
     if ( $$.data.more != 1 ) {
       self.oid.push_back(self.temp);
-      self.oidstring += spicy::fmt(b".%d", (self.temp, 1));
+      self.oidstring = self.oidstring + ".%d" % (self.temp);
       self.temp = 0;
     }
   }
@@ -155,7 +155,7 @@ type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::BOOLEAN -> bool_value: uint8;
     ASN1Type::INTEGER, ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len &convert=$$.to_int(spicy::ByteOrder::Big);
     ### TODO - bail out if length != 0
-    ASN1Type::NULL -> : void {}
+    ASN1Type::NULL -> : void;
     ASN1Type::BITSTRING -> bitstring: ASN1BITSTRING(head.len.len, head.tag.data.constructed);
     ASN1Type::OCTETSTRING -> octetstring: ASN1OCTETSTRING(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1OBJECTIDENTIFIER(head.len.len);

@@ -7,7 +7,7 @@ type ASN1Type = enum {
   INTEGER = 2,
   BITSTRING = 3,
   OCTETSTRING = 4,
-  NULL = 5,
+  NULLVAL = 5,
   OBJECTIDENTIFIER = 6,
   ObjectDescriptor = 7,
   INSTANCEOF = 8,
@@ -78,14 +78,14 @@ type ASN1BITSTRING = unit(len: uint64, constructed: uint8) {
   unused_bits: uint8;
   value_bits: bytes &size=(len - 1);
 
-### TODO constructed form: we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
+  # TODO - constructed form: we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
 };
 
 type ASN1OCTETSTRING = unit(len: uint64, constructed: uint8) {
   var len: uint64;
   value: bytes &size = len;
 
-### TODO: constructed form
+  # TODO - constructed form
 
   on %done {
     self.len = len;
@@ -98,7 +98,7 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
   switch ( tag.tpe ) {
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::ASCII);
     ASN1Type::UTF8String -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF8);
-### TODO: error out? (hilti::Charset::UTF32BE and hilti::Charset::UTF16BE don't exist)
+### TODO ERROR - error out? (hilti::Charset::UTF32BE and hilti::Charset::UTF16BE don't exist)
     # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF16BE);
     # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
   };
@@ -155,14 +155,12 @@ type ASN1Body = unit(head: ASN1Header) {
 ### TODO - bail out if length != 1
     ASN1Type::BOOLEAN -> bool_value: uint8;
     ASN1Type::INTEGER, ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len &convert=$$.to_int(spicy::ByteOrder::Big);
-### TODO - bail out if length != 0
-### TODO: struct type does not have a method `__on_anon_2`
-#   ASN1Type::NULL -> : void;
+    ASN1Type::NULLVAL -> : void { assert head.len.len == 0; }
     ASN1Type::BITSTRING -> bitstring: ASN1BITSTRING(head.len.len, head.tag.data.constructed);
     ASN1Type::OCTETSTRING -> octetstring: ASN1OCTETSTRING(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1OBJECTIDENTIFIER(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-### TODO: commented out because of ambiguous compile errors, need to examine
+### TODO ERROR - commented out because of ambiguous compile errors, need to examine
 #    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &length=head.len.len;
     * -> : bytes &size=head.len.len {
       print "Unknown type: ", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
@@ -170,7 +168,7 @@ type ASN1Body = unit(head: ASN1Header) {
   };
 };
 
-### TODO: commented out because of ambiguous compile errors, need to examine
+### TODO ERROR - commented out because of ambiguous compile errors, need to examine
 # type ASN1Message = unit {
 #   head: ASN1Header;
 #

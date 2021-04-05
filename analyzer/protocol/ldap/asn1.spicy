@@ -98,9 +98,13 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
   switch ( tag.tpe ) {
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::ASCII);
     ASN1Type::UTF8String -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF8);
-### TODO ERROR - error out? (hilti::Charset::UTF32BE and hilti::Charset::UTF16BE don't exist)
+    ### TODO ERROR - error out? (hilti::Charset::UTF32BE and hilti::Charset::UTF16BE don't exist)
     # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF16BE);
     # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
+    * -> : bytes &size=len {
+      print "Unsupported ASN1String type: ", tag.tpe, tag.data.constructed;
+      assert False;
+    }
   };
 
 };
@@ -151,7 +155,7 @@ type ASN1Body = unit(head: ASN1Header) {
   var parse_length: uint64 = 0;
 
   switch ( head.tag.tpe ) {
-### TODO - bail out if length != 1
+    ### TODO - bail out if boolean length != 1
     ASN1Type::BOOLEAN -> bool_value: uint8;
     ASN1Type::INTEGER, ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len &convert=$$.to_int(spicy::ByteOrder::Big);
     ASN1Type::NULLVAL -> : void { assert head.len.len == 0; }
@@ -161,7 +165,8 @@ type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &length=head.len.len;
     * -> : bytes &size=head.len.len {
-      print "Unknown type: ", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
+      print "Unsupported ASN1Body type: ", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
+      assert False;
     }
   };
 };
@@ -169,7 +174,8 @@ type ASN1Body = unit(head: ASN1Header) {
 type ASN1Message = unit {
   head: ASN1Header;
   body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
-  submessage: ASN1Message if ( self.head.tag.class != ASN1Class::UNIVERSAL );
+### TODO ERROR: temporarily replaced ASN1Message with void as this throws an error
+  submessage: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
   # assume explicit tagging, otherwise this will go horribly wrong
 };
 

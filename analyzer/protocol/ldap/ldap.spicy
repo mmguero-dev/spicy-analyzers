@@ -1,6 +1,6 @@
-module LDAP;
+module ldap;
 
-import ANS1;
+import asn1;
 
 # https://tools.ietf.org/html/rfc4511
 

@@ -62,6 +62,9 @@ public type Message = unit {
   sequence: asn1::ASN1Header;
   messageID: asn1::ASN1Message;
   opcode: uint8;
+  # TODO: I can't seem to figure out what this byte is... seems that I must
+  # be missing something about some ASN.1 length field?
+  mysteryLengthByte: uint8;
   switch ( ProtocolOpcode(self.opcode) ) {
     ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest;
     ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse;
@@ -86,7 +89,7 @@ public type Message = unit {
     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse;
   };
   on %done {
-    print "Message", self.messageID.body.num_value, "0x%2x" % self.opcode;
+    print "Message", self.messageID.body.num_value, "0x%2x" % self.opcode, self.mysteryLengthByte;
   }
 };
 
@@ -94,9 +97,9 @@ public type Message = unit {
 # https://tools.ietf.org/html/rfc4511#section-4.2
 
 type BindRequest = unit {
-
+  version: asn1::ASN1Message;
   on %done {
-    print "BindRequest";
+    print "BindRequest version", self.version.body.num_value;
   }
 };
 

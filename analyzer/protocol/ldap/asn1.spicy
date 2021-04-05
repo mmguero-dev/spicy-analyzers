@@ -78,14 +78,15 @@ type ASN1BITSTRING = unit(len: uint64, constructed: uint8) {
   unused_bits: uint8;
   value_bits: bytes &size=(len - 1);
 
-  # we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
+### TODO constructed form: we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
 };
 
 type ASN1OCTETSTRING = unit(len: uint64, constructed: uint8) {
   var len: uint64;
   value: bytes &size = len;
 
-### TODO: constructed form...
+### TODO: constructed form
+
   on %done {
     self.len = len;
   }
@@ -97,7 +98,7 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
   switch ( tag.tpe ) {
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::ASCII);
     ASN1Type::UTF8String -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF8);
-### TODO: error out? (Charset::UTF32BE and Charset::UTF16BE don't exist)
+### TODO: error out? (hilti::Charset::UTF32BE and hilti::Charset::UTF16BE don't exist)
     # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF16BE);
     # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
   };

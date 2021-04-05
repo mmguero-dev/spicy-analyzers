@@ -103,7 +103,6 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
     # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
   };
 
-#    on %done { print "String: ", self.value; }
 };
 
 type oidnibble = unit {
@@ -160,24 +159,20 @@ type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::OCTETSTRING -> octetstring: ASN1OCTETSTRING(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1OBJECTIDENTIFIER(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-### TODO ERROR - commented out because of ambiguous compile errors, need to examine
-#    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &length=head.len.len;
+    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &length=head.len.len;
     * -> : bytes &size=head.len.len {
       print "Unknown type: ", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
     }
   };
 };
 
-### TODO ERROR - commented out because of ambiguous compile errors, need to examine
-# type ASN1Message = unit {
-#   head: ASN1Header;
-#
-#   body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
-#   submessage: ASN1Message if ( self.head.tag.class != ASN1Class::UNIVERSAL );
-#   # assume explicit tagging, otherwise this will go horribly wrong
-# };
-#
-# type outer = unit {
-#   message: ASN1Message;
-# };
-#
+type ASN1Message = unit {
+  head: ASN1Header;
+  body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
+  submessage: ASN1Message if ( self.head.tag.class != ASN1Class::UNIVERSAL );
+  # assume explicit tagging, otherwise this will go horribly wrong
+};
+
+type outer = unit {
+  message: ASN1Message;
+};

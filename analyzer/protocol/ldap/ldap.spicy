@@ -59,7 +59,8 @@ type ProtocolOpcode = enum {
 };
 
 public type Message = unit {
-  messageID: uint32;
+  sequence: asn1::ASN1Header;
+  messageID: asn1::ASN1Message;
   opcode: uint8;
   switch ( ProtocolOpcode(self.opcode) ) {
     ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest;
@@ -84,6 +85,9 @@ public type Message = unit {
     ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse;
     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse;
   };
+  on %done {
+    print "Message", self.messageID.body.num_value, "0x%2x" % self.opcode;
+  }
 };
 
 # Bind Operation
@@ -91,12 +95,16 @@ public type Message = unit {
 
 type BindRequest = unit {
 
-
+  on %done {
+    print "BindRequest";
+  }
 };
 
 type BindResponse = unit {
 
-
+  on %done {
+    print "BindResponse";
+  }
 };
 
 # Unbind Operation
@@ -104,7 +112,9 @@ type BindResponse = unit {
 
 type UnbindRequest = unit {
 
-
+  on %done {
+    print "UnbindRequest";
+  }
 };
 
 # Search Operation
@@ -112,17 +122,23 @@ type UnbindRequest = unit {
 
 type SearchRequest = unit {
 
-
+  on %done {
+    print "SearchRequest";
+  }
 };
 
 type SearchResultEntry = unit {
 
-
+  on %done {
+    print "SearchResultEntry";
+  }
 };
 
 type SearchResultDone = unit {
 
-
+  on %done {
+    print "SearchResultDone";
+  }
 };
 
 # Modify Operation
@@ -130,12 +146,16 @@ type SearchResultDone = unit {
 
 type ModifyRequest = unit {
 
-
+  on %done {
+    print "ModifyRequest";
+  }
 };
 
 type ModifyResponse = unit {
 
-
+  on %done {
+    print "ModifyResponse";
+  }
 };
 
 # Add Operation
@@ -143,12 +163,16 @@ type ModifyResponse = unit {
 
 type AddRequest = unit {
 
-
+  on %done {
+    print "AddRequest";
+  }
 };
 
 type AddResponse = unit {
 
-
+  on %done {
+    print "AddResponse";
+  }
 };
 
 # Delete Operation
@@ -156,12 +180,16 @@ type AddResponse = unit {
 
 type DelRequest = unit {
 
-
+  on %done {
+    print "DelRequest";
+  }
 };
 
 type DelResponse = unit {
 
-
+  on %done {
+    print "DelResponse";
+  }
 };
 
 # Modify DN Operation
@@ -169,12 +197,16 @@ type DelResponse = unit {
 
 type ModDNRequest = unit {
 
-
+  on %done {
+    print "ModDNRequest";
+  }
 };
 
 type ModDNResponse = unit {
 
-
+  on %done {
+    print "ModDNResponse";
+  }
 };
 
 # Compare Operation
@@ -182,12 +214,16 @@ type ModDNResponse = unit {
 
 type CompareRequest = unit {
 
-
+  on %done {
+    print "CompareRequest";
+  }
 };
 
 type CompareResponse = unit {
 
-
+  on %done {
+    print "CompareResponse";
+  }
 };
 
 # Abandon Operation
@@ -195,12 +231,16 @@ type CompareResponse = unit {
 
 type AbandonRequest = unit {
 
-
+  on %done {
+    print "AbandonRequest";
+  }
 };
 
 type SearchResultReference = unit {
 
-
+  on %done {
+    print "SearchResultReference";
+  }
 };
 
 # Extended Operation
@@ -208,12 +248,16 @@ type SearchResultReference = unit {
 
 type ExtendedRequest = unit {
 
-
+  on %done {
+    print "ExtendedRequest";
+  }
 };
 
 type ExtendedResponse = unit {
 
-
+  on %done {
+    print "ExtendedResponse";
+  }
 };
 
 # IntermediateResponse Message
@@ -221,5 +265,7 @@ type ExtendedResponse = unit {
 
 type IntermediateResponse = unit {
 
-
+  on %done {
+    print "IntermediateResponse";
+  }
 };

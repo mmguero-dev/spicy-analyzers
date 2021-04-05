@@ -55,6 +55,11 @@ type LengthType = unit {
     0 -> : b"" { self.len = self.data.num; self.tag_len = 1; }
     1 -> length_parse: bytes &size=self.data.num &convert=$$.to_uint(spicy::ByteOrder::Network) { self.len = self.length_parse; self.tag_len = self.data.num + 1; }
   };
+
+  on %done {
+    print "LengthType tag_len/len", self.tag_len, self.len;
+  }
+
 };
 
 type ASN1Tag = unit {
@@ -71,17 +76,23 @@ type ASN1Tag = unit {
   on %done {
     self.tpe = ASN1Type(self.data.num);
     self.class = ASN1Class(self.data.class);
+
+    print "ASN1Tag tpe/class/len", self.tpe, self.class, self.len;
   }
 };
 
-type ASN1BITSTRING = unit(len: uint64, constructed: uint8) {
+type ASN1BitString = unit(len: uint64, constructed: uint8) {
   unused_bits: uint8;
   value_bits: bytes &size=(len - 1);
 
   # TODO - constructed form: we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
+
+  on %done {
+    print "ASN1BitString";
+  }
 };
 
-type ASN1OCTETSTRING = unit(len: uint64, constructed: uint8) {
+type ASN1OctetString = unit(len: uint64, constructed: uint8) {
   var len: uint64;
   value: bytes &size = len;
 
@@ -89,11 +100,13 @@ type ASN1OCTETSTRING = unit(len: uint64, constructed: uint8) {
 
   on %done {
     self.len = len;
+
+    print "ASN1OctetString len/value", self.len, self.value;
   }
 };
 
 type ASN1String = unit(tag: ASN1Tag, len: uint64) {
-  octetstring: ASN1OCTETSTRING(len, tag.data.constructed);
+  octetstring: ASN1OctetString(len, tag.data.constructed);
 
   switch ( tag.tpe ) {
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::ASCII);
@@ -102,10 +115,14 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
     # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF16BE);
     # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
     * -> : bytes &size=len {
-      print "Unsupported ASN1String type: ", tag.tpe, tag.data.constructed;
+      print "Unsupported ASN1String type:", tag.tpe, tag.data.constructed;
       assert False;
     }
   };
+
+  on %done {
+    print "ASN1String tag/len/value", tag.tpe, len, self.value;
+  }
 
 };
 
@@ -116,7 +133,7 @@ type oidnibble = unit {
   };
 };
 
-type ASN1OBJECTIDENTIFIER = unit(len: uint64) {
+type ASN1ObjectIdentifier = unit(len: uint64) {
   var oid: vector<uint64>;
   var temp: uint64;
   var oidstring: string;
@@ -139,9 +156,14 @@ type ASN1OBJECTIDENTIFIER = unit(len: uint64) {
       self.temp = 0;
     }
   }
+
+  on %done {
+    print "ASN1ObjectIdentifier", self.oidstring;
+  }
+
 };
 
-type ASN1Header = unit {
+public type ASN1Header = unit {
   tag: ASN1Tag;
 
   var total_length: uint64;
@@ -149,9 +171,13 @@ type ASN1Header = unit {
   len: LengthType {
     self.total_length = self.len.len + self.tag.len + self.len.tag_len;
   }
+
+  on %done {
+    print "ASN1Header", self.tag.tpe, self.total_length;
+  }
 };
 
-type ASN1Body = unit(head: ASN1Header) {
+public type ASN1Body = unit(head: ASN1Header) {
   var parse_length: uint64 = 0;
 
   switch ( head.tag.tpe ) {
@@ -159,26 +185,30 @@ type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::BOOLEAN -> bool_value: uint8;
     ASN1Type::INTEGER, ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len &convert=$$.to_int(spicy::ByteOrder::Big);
     ASN1Type::NULLVAL -> : void { assert head.len.len == 0; }
-    ASN1Type::BITSTRING -> bitstring: ASN1BITSTRING(head.len.len, head.tag.data.constructed);
-    ASN1Type::OCTETSTRING -> octetstring: ASN1OCTETSTRING(head.len.len, head.tag.data.constructed);
-    ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1OBJECTIDENTIFIER(head.len.len);
+    ASN1Type::BITSTRING -> bitstring: ASN1BitString(head.len.len, head.tag.data.constructed);
+    ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
+    ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &length=head.len.len;
     * -> : bytes &size=head.len.len {
-      print "Unsupported ASN1Body type: ", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
+      print "Unsupported ASN1Body type:", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
       assert False;
     }
   };
+
+  on %done {
+    print "ASN1Body", head.tag.tpe, head.tag.data.class, head.len.len;
+  }
 };
 
-type ASN1Message = unit {
+public type ASN1Message = unit {
   head: ASN1Header;
   body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
 ### TODO ERROR: temporarily replaced ASN1Message with void as this throws an error
   submessage: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
   # assume explicit tagging, otherwise this will go horribly wrong
-};
 
-type outer = unit {
-  message: ASN1Message;
+  on %done {
+    print "ASN1Message", self.head.tag.tpe, self.head.tag.class, self.head.len.len;
+  }
 };

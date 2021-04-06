@@ -100,9 +100,22 @@ public type Message = unit {
 # Bind Operation
 # https://tools.ietf.org/html/rfc4511#section-4.2
 
+type BindAuthType = enum {
+  BIND_AUTH_SIMPLE = 0,
+  BIND_AUTH_SASL = 3,
+  BIND_AUTH_INVALID = 31
+};
+
 type BindRequest = unit {
   version: asn1::ASN1Message &convert=$$.body.num_value;
   name: asn1::ASN1Message &convert=$$.body.octetstring;
+  var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
+  authentication: asn1::ASN1Message {
+    if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
+      self.authType = BindAuthType(self.authentication.head.tag.data.num);
+    }
+  }
+  authSimpleStr: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
   on %done {
     print "BindRequest", self;
   }

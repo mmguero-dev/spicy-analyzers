@@ -101,8 +101,8 @@ public type Message = unit {
 # https://tools.ietf.org/html/rfc4511#section-4.2
 
 type BindRequest = unit {
-  # version: asn1::ASN1Message &convert=$$.body.num_value;
-  # name: asn1::ASN1Message &convert=$$.body.octetstring;
+  version: asn1::ASN1Message &convert=$$.body.num_value;
+  name: asn1::ASN1Message &convert=$$.body.octetstring;
   on %done {
     print "BindRequest", self;
   }

@@ -162,8 +162,8 @@ public type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
     ### TODO: not exactly sure how to specify how many messages we will have, as I don't think we know (other than
-    ### by byte size) here. Come back to this.
-    # ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[];
+    ### by byte size) here. Come back to this!
+    ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[];
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages_void_placeholder: void;
     * -> : bytes &size=head.len.len {
       print "Unsupported ASN1Body type:", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
@@ -176,8 +176,4 @@ public type ASN1Message = unit {
   head: ASN1Header;
   body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
   application_void_placeholder: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
-  # rawbytes: bytes &size=self.head.len.len if ( self.head.tag.class != ASN1Class::UNIVERSAL );
-  on %done {
-    print self;
-  }
 };

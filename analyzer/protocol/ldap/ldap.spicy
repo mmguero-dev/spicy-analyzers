@@ -61,33 +61,30 @@ type ProtocolOpcode = enum {
 public type Message = unit {
   sequence: asn1::ASN1Message &convert=$$.head;
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
-  opcode: uint8;
-  # TODO: I can't seem to figure out what this byte is... seems that I must
-  # be missing something about some ASN.1 length field?
-  # mysteryLengthByte: uint8;
-  switch ( ProtocolOpcode(self.opcode) ) {
-    ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest;
-    ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse;
-    ProtocolOpcode::UNBIND_REQUEST -> UNBIND_REQUEST: UnbindRequest;
-    ProtocolOpcode::SEARCH_REQUEST -> SEARCH_REQUEST: SearchRequest;
-    ProtocolOpcode::SEARCH_RESULT_ENTRY -> SEARCH_RESULT_ENTRY: SearchResultEntry;
-    ProtocolOpcode::SEARCH_RESULT_DONE -> SEARCH_RESULT_DONE: SearchResultDone;
-    ProtocolOpcode::MODIFY_REQUEST -> MODIFY_REQUEST: ModifyRequest;
-    ProtocolOpcode::MODIFY_RESPONSE -> MODIFY_RESPONSE: ModifyResponse;
-    ProtocolOpcode::ADD_REQUEST -> ADD_REQUEST: AddRequest;
-    ProtocolOpcode::ADD_RESPONSE -> ADD_RESPONSE: AddResponse;
-    ProtocolOpcode::DEL_REQUEST -> DEL_REQUEST: DelRequest;
-    ProtocolOpcode::DEL_RESPONSE -> DEL_RESPONSE: DelResponse;
-    ProtocolOpcode::MOD_DN_REQUEST -> MOD_DN_REQUEST: ModDNRequest;
-    ProtocolOpcode::MOD_DN_RESPONSE -> MOD_DN_RESPONSE: ModDNResponse;
-    ProtocolOpcode::COMPARE_REQUEST -> COMPARE_REQUEST: CompareRequest;
-    ProtocolOpcode::COMPARE_RESPONSE -> COMPARE_RESPONSE: CompareResponse;
-    ProtocolOpcode::ABANDON_REQUEST -> ABANDON_REQUEST: AbandonRequest;
-    ProtocolOpcode::SEARCH_RESULT_REFERENCE -> SEARCH_RESULT_REFERENCE: SearchResultReference;
-    ProtocolOpcode::EXTENDED_REQUEST -> EXTENDED_REQUEST: ExtendedRequest;
-    ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse;
-    ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse;
-  };
+  opcode: asn1::ASN1Message;
+#   switch ( ProtocolOpcode(self.opcode) ) {
+#     ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest;
+#     ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse;
+#     ProtocolOpcode::UNBIND_REQUEST -> UNBIND_REQUEST: UnbindRequest;
+#     ProtocolOpcode::SEARCH_REQUEST -> SEARCH_REQUEST: SearchRequest;
+#     ProtocolOpcode::SEARCH_RESULT_ENTRY -> SEARCH_RESULT_ENTRY: SearchResultEntry;
+#     ProtocolOpcode::SEARCH_RESULT_DONE -> SEARCH_RESULT_DONE: SearchResultDone;
+#     ProtocolOpcode::MODIFY_REQUEST -> MODIFY_REQUEST: ModifyRequest;
+#     ProtocolOpcode::MODIFY_RESPONSE -> MODIFY_RESPONSE: ModifyResponse;
+#     ProtocolOpcode::ADD_REQUEST -> ADD_REQUEST: AddRequest;
+#     ProtocolOpcode::ADD_RESPONSE -> ADD_RESPONSE: AddResponse;
+#     ProtocolOpcode::DEL_REQUEST -> DEL_REQUEST: DelRequest;
+#     ProtocolOpcode::DEL_RESPONSE -> DEL_RESPONSE: DelResponse;
+#     ProtocolOpcode::MOD_DN_REQUEST -> MOD_DN_REQUEST: ModDNRequest;
+#     ProtocolOpcode::MOD_DN_RESPONSE -> MOD_DN_RESPONSE: ModDNResponse;
+#     ProtocolOpcode::COMPARE_REQUEST -> COMPARE_REQUEST: CompareRequest;
+#     ProtocolOpcode::COMPARE_RESPONSE -> COMPARE_RESPONSE: CompareResponse;
+#     ProtocolOpcode::ABANDON_REQUEST -> ABANDON_REQUEST: AbandonRequest;
+#     ProtocolOpcode::SEARCH_RESULT_REFERENCE -> SEARCH_RESULT_REFERENCE: SearchResultReference;
+#     ProtocolOpcode::EXTENDED_REQUEST -> EXTENDED_REQUEST: ExtendedRequest;
+#     ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse;
+#     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse;
+#   };
   on %done {
     print "Message", self;
   }

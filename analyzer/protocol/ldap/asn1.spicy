@@ -56,9 +56,9 @@ type LengthType = unit {
     1 -> length_parse: bytes &size=self.data.num &convert=$$.to_uint(spicy::ByteOrder::Network) { self.len = self.length_parse; self.tag_len = self.data.num + 1; }
   };
 
-  on %done {
-    print "LengthType num/islong/len/tag_len", self.data.num, self.data.islong, self.len, self.tag_len;
-  }
+  # on %done {
+  #   print "LengthType num/islong/len/tag_len", self.data.num, self.data.islong, self.len, self.tag_len;
+  # }
 
 };
 
@@ -77,7 +77,7 @@ type ASN1Tag = unit {
     self.tpe = ASN1Type(self.data.num);
     self.class = ASN1Class(self.data.class);
 
-    print "ASN1Tag tpe/class/len", self.tpe, self.class, self.len;
+    # print "ASN1Tag tpe/class/len", self.tpe, self.class, self.len;
   }
 };
 
@@ -87,9 +87,9 @@ type ASN1BitString = unit(len: uint64, constructed: uint8) {
 
   # TODO - constructed form: we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
 
-  on %done {
-    print "ASN1BitString";
-  }
+  # on %done {
+  #   print "ASN1BitString";
+  # }
 };
 
 type ASN1OctetString = unit(len: uint64, constructed: uint8) {
@@ -101,7 +101,7 @@ type ASN1OctetString = unit(len: uint64, constructed: uint8) {
   on %done {
     self.len = len;
 
-    print "ASN1OctetString len/value", self.len, self.value;
+    # print "ASN1OctetString len/value", self.len, self.value;
   }
 };
 
@@ -120,9 +120,9 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
     }
   };
 
-  on %done {
-    print "ASN1String tag/len/value", tag.tpe, len, self.value;
-  }
+  # on %done {
+  #   print "ASN1String tag/len/value", tag.tpe, len, self.value;
+  # }
 
 };
 
@@ -157,9 +157,9 @@ type ASN1ObjectIdentifier = unit(len: uint64) {
     }
   }
 
-  on %done {
-    print "ASN1ObjectIdentifier", self.oidstring;
-  }
+  # on %done {
+  #   print "ASN1ObjectIdentifier", self.oidstring;
+  # }
 
 };
 
@@ -172,9 +172,9 @@ public type ASN1Header = unit {
     self.total_length = self.len.len + self.tag.len + self.len.tag_len;
   }
 
-  on %done {
-    print "ASN1Header", self.tag.tpe, self.total_length;
-  }
+  # on %done {
+  #   print self;
+  # }
 };
 
 public type ASN1Body = unit(head: ASN1Header) {
@@ -196,19 +196,16 @@ public type ASN1Body = unit(head: ASN1Header) {
     }
   };
 
-  on %done {
-    print "ASN1Body", head.tag.tpe, head.tag.data.class, head.len.len;
-  }
+  #on %done {
+  #  print self;
+  #}
 };
 
 public type ASN1Message = unit {
   head: ASN1Header;
   body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
-### TODO ERROR: temporarily replaced ASN1Message with void as this throws an error
-  submessage: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
-  # assume explicit tagging, otherwise this will go horribly wrong
-
+  rawbytes: bytes &size=self.head.len.len if ( self.head.tag.class != ASN1Class::UNIVERSAL );
   on %done {
-    print "ASN1Message", self.head.tag.tpe, self.head.tag.class, self.head.len.len;
+    print self;
   }
 };

@@ -57,7 +57,7 @@ type LengthType = unit {
   };
 
   on %done {
-    print "LengthType num/islong/tag_len/len", self.data.num, self.data.islong, self.len, self.tag_len;
+    print "LengthType num/islong/len/tag_len", self.data.num, self.data.islong, self.len, self.tag_len;
   }
 
 };

@@ -35,56 +35,63 @@ import asn1;
 # maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) --
 
 type ProtocolOpcode = enum {
-  BIND_REQUEST = 0x60,
-  BIND_RESPONSE = 0x61,
-  UNBIND_REQUEST = 0x62,
-  SEARCH_REQUEST = 0x63,
-  SEARCH_RESULT_ENTRY = 0x64,
-  SEARCH_RESULT_DONE = 0x65,
-  MODIFY_REQUEST = 0x66,
-  MODIFY_RESPONSE = 0x67,
-  ADD_REQUEST = 0x68,
-  ADD_RESPONSE = 0x69,
-  DEL_REQUEST = 0x6a,
-  DEL_RESPONSE = 0x6b,
-  MOD_DN_REQUEST = 0x6c,
-  MOD_DN_RESPONSE = 0x6d,
-  COMPARE_REQUEST = 0x6e,
-  COMPARE_RESPONSE = 0x6f,
-  ABANDON_REQUEST = 0x70,
-  SEARCH_RESULT_REFERENCE = 0x73,
-  EXTENDED_REQUEST = 0x77,
-  EXTENDED_RESPONSE = 0x78,
-  INTERMEDIATE_RESPONSE = 0x79
+  BIND_REQUEST = 0,
+  BIND_RESPONSE = 1,
+  UNBIND_REQUEST = 2,
+  SEARCH_REQUEST = 3,
+  SEARCH_RESULT_ENTRY = 4,
+  SEARCH_RESULT_DONE = 5,
+  MODIFY_REQUEST = 6,
+  MODIFY_RESPONSE = 7,
+  ADD_REQUEST = 8,
+  ADD_RESPONSE = 9,
+  DEL_REQUEST = 10,
+  DEL_RESPONSE = 11,
+  MOD_DN_REQUEST = 12,
+  MOD_DN_RESPONSE = 13,
+  COMPARE_REQUEST = 14,
+  COMPARE_RESPONSE = 15,
+  ABANDON_REQUEST = 16,
+  SEARCH_RESULT_REFERENCE = 19,
+  EXTENDED_REQUEST = 23,
+  EXTENDED_RESPONSE = 24,
+  INTERMEDIATE_RESPONSE = 25
 };
 
 public type Message = unit {
-  sequence: asn1::ASN1Message &convert=$$.head;
+  sequence: asn1::ASN1Message { assert self.sequence.head.tag.tpe == asn1::ASN1Type::SEQUENCE; }
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
-  opcode: asn1::ASN1Message;
-#   switch ( ProtocolOpcode(self.opcode) ) {
-#     ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest;
-#     ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse;
-#     ProtocolOpcode::UNBIND_REQUEST -> UNBIND_REQUEST: UnbindRequest;
-#     ProtocolOpcode::SEARCH_REQUEST -> SEARCH_REQUEST: SearchRequest;
-#     ProtocolOpcode::SEARCH_RESULT_ENTRY -> SEARCH_RESULT_ENTRY: SearchResultEntry;
-#     ProtocolOpcode::SEARCH_RESULT_DONE -> SEARCH_RESULT_DONE: SearchResultDone;
-#     ProtocolOpcode::MODIFY_REQUEST -> MODIFY_REQUEST: ModifyRequest;
-#     ProtocolOpcode::MODIFY_RESPONSE -> MODIFY_RESPONSE: ModifyResponse;
-#     ProtocolOpcode::ADD_REQUEST -> ADD_REQUEST: AddRequest;
-#     ProtocolOpcode::ADD_RESPONSE -> ADD_RESPONSE: AddResponse;
-#     ProtocolOpcode::DEL_REQUEST -> DEL_REQUEST: DelRequest;
-#     ProtocolOpcode::DEL_RESPONSE -> DEL_RESPONSE: DelResponse;
-#     ProtocolOpcode::MOD_DN_REQUEST -> MOD_DN_REQUEST: ModDNRequest;
-#     ProtocolOpcode::MOD_DN_RESPONSE -> MOD_DN_RESPONSE: ModDNResponse;
-#     ProtocolOpcode::COMPARE_REQUEST -> COMPARE_REQUEST: CompareRequest;
-#     ProtocolOpcode::COMPARE_RESPONSE -> COMPARE_RESPONSE: CompareResponse;
-#     ProtocolOpcode::ABANDON_REQUEST -> ABANDON_REQUEST: AbandonRequest;
-#     ProtocolOpcode::SEARCH_RESULT_REFERENCE -> SEARCH_RESULT_REFERENCE: SearchResultReference;
-#     ProtocolOpcode::EXTENDED_REQUEST -> EXTENDED_REQUEST: ExtendedRequest;
-#     ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse;
-#     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse;
-#   };
+  var opcode: uint8 = 0;
+  operation: asn1::ASN1Message {
+    if (self.operation.head.tag.class == asn1::ASN1Class::APPLICATION) {
+      self.opcode = self.operation.head.tag.data.num;
+    }
+  }
+  switch ( ProtocolOpcode(self.opcode) ) {
+    ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest;
+    ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse;
+    ProtocolOpcode::UNBIND_REQUEST -> UNBIND_REQUEST: UnbindRequest;
+    ProtocolOpcode::SEARCH_REQUEST -> SEARCH_REQUEST: SearchRequest;
+    ProtocolOpcode::SEARCH_RESULT_ENTRY -> SEARCH_RESULT_ENTRY: SearchResultEntry;
+    ProtocolOpcode::SEARCH_RESULT_DONE -> SEARCH_RESULT_DONE: SearchResultDone;
+    ProtocolOpcode::MODIFY_REQUEST -> MODIFY_REQUEST: ModifyRequest;
+    ProtocolOpcode::MODIFY_RESPONSE -> MODIFY_RESPONSE: ModifyResponse;
+    ProtocolOpcode::ADD_REQUEST -> ADD_REQUEST: AddRequest;
+    ProtocolOpcode::ADD_RESPONSE -> ADD_RESPONSE: AddResponse;
+    ProtocolOpcode::DEL_REQUEST -> DEL_REQUEST: DelRequest;
+    ProtocolOpcode::DEL_RESPONSE -> DEL_RESPONSE: DelResponse;
+    ProtocolOpcode::MOD_DN_REQUEST -> MOD_DN_REQUEST: ModDNRequest;
+    ProtocolOpcode::MOD_DN_RESPONSE -> MOD_DN_RESPONSE: ModDNResponse;
+    ProtocolOpcode::COMPARE_REQUEST -> COMPARE_REQUEST: CompareRequest;
+    ProtocolOpcode::COMPARE_RESPONSE -> COMPARE_RESPONSE: CompareResponse;
+    ProtocolOpcode::ABANDON_REQUEST -> ABANDON_REQUEST: AbandonRequest;
+    ProtocolOpcode::SEARCH_RESULT_REFERENCE -> SEARCH_RESULT_REFERENCE: SearchResultReference;
+    ProtocolOpcode::EXTENDED_REQUEST -> EXTENDED_REQUEST: ExtendedRequest;
+    ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse;
+    ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse;
+  };
+  data: bytes &eod;
+
   on %done {
     print "Message", self;
   }

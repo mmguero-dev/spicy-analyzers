@@ -161,9 +161,8 @@ public type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-    ### TODO: not exactly sure how to specify how many messages we will have, as I don't think we know
-    ### (i.e., head.len.len is byte size, not element count) here.
-    ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[???];
+    ### TODO: come back to this, need to examine viability of using recursive submessages as intended by the ASN.1 spec
+    ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &size=head.len.len;
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages_void_placeholder: void;
     * -> : bytes &size=head.len.len {
       print "Unsupported ASN1Body type:", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;

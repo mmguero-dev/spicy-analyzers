@@ -4,36 +4,6 @@ import asn1;
 
 # https://tools.ietf.org/html/rfc4511
 
-# LDAPMessage ::= SEQUENCE {
-#      messageID       MessageID,
-#      protocolOp      CHOICE {
-#           bindRequest           BindRequest,
-#           bindResponse          BindResponse,
-#           unbindRequest         UnbindRequest,
-#           searchRequest         SearchRequest,
-#           searchResEntry        SearchResultEntry,
-#           searchResDone         SearchResultDone,
-#           searchResRef          SearchResultReference,
-#           modifyRequest         ModifyRequest,
-#           modifyResponse        ModifyResponse,
-#           addRequest            AddRequest,
-#           addResponse           AddResponse,
-#           delRequest            DelRequest,
-#           delResponse           DelResponse,
-#           modDNRequest          ModifyDNRequest,
-#           modDNResponse         ModifyDNResponse,
-#           compareRequest        CompareRequest,
-#           compareResponse       CompareResponse,
-#           abandonRequest        AbandonRequest,
-#           extendedReq           ExtendedRequest,
-#           extendedResp          ExtendedResponse,
-#           ...,
-#           intermediateResponse  IntermediateResponse },
-#      controls       [0] Controls OPTIONAL }
-#
-# MessageID ::= INTEGER (0 ..  maxInt)
-# maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) --
-
 type ProtocolOpcode = enum {
   BIND_REQUEST = 0,
   BIND_RESPONSE = 1,
@@ -56,6 +26,48 @@ type ProtocolOpcode = enum {
   EXTENDED_REQUEST = 23,
   EXTENDED_RESPONSE = 24,
   INTERMEDIATE_RESPONSE = 25
+};
+
+type ResultCode = enum {
+  SUCCESS = 0,
+  OPERATIONS_ERROR = 1,
+  PROTOCOL_ERROR = 2,
+  TIME_LIMIT_EXCEEDED = 3,
+  SIZE_LIMIT_EXCEEDED = 4,
+  COMPARE_FALSE = 5,
+  COMPARE_TRUE = 6,
+  AUTH_METHOD_NOT_SUPPORTED = 7,
+  STRONGER_AUTH_REQUIRED = 8,
+  REFERRAL = 10,
+  ADMIN_LIMIT_EXCEEDED = 11,
+  UNAVAILABLE_CRITICAL_EXTENSION = 12,
+  CONFIDENTIALITY_REQUIRED = 13,
+  SASL_BIND_IN_PROGRESS = 14,
+  NO_SUCH_ATTRIBUTE = 16,
+  UNDEFINED_ATTRIBUTE_TYPE = 17,
+  INAPPROPRIATE_MATCHING = 18,
+  CONSTRAINT_VIOLATION = 19,
+  ATTRIBUTE_OR_VALUE_EXISTS = 20,
+  INVALID_ATTRIBUTE_SYNTAX = 21,
+  NO_SUCH_OBJECT = 32,
+  ALIAS_PROBLEM = 33,
+  INVALID_DNSYNTAX = 34,
+  ALIAS_DEREFERENCING_PROBLEM = 36,
+  INAPPROPRIATE_AUTHENTICATION = 48,
+  INVALID_CREDENTIALS = 49,
+  INSUFFICIENT_ACCESS_RIGHTS = 50,
+  BUSY = 51,
+  UNAVAILABLE = 52,
+  UNWILLING_TO_PERFORM = 53,
+  LOOP_DETECT = 54,
+  NAMING_VIOLATION = 64,
+  OBJECT_CLASS_VIOLATION = 65,
+  NOT_ALLOWED_ON_NON_LEAF = 66,
+  NOT_ALLOWED_ON_RDN = 67,
+  ENTRY_ALREADY_EXISTS = 68,
+  OBJECT_CLASS_MODS_PROHIBITED = 69,
+  AFFECTS_MULTIPLE_DSAS = 71,
+  OTHER = 80
 };
 
 public type Message = unit {
@@ -106,6 +118,13 @@ type BindAuthType = enum {
   BIND_AUTH_INVALID = 31
 };
 
+type SaslCredentials = unit {
+  mechanism: asn1::ASN1Message &convert=$$.body.octetstring;
+  # TODO: this SASL credentials octet string could be parsed a lot more
+  # see: https://lapo.it/asn1js/#MIQAAAVCAgEHYIQAAAU5AgEDBACjhAAABS4ECkdTUy1TUE5FR08EggUeYIIFGgYGKwYBBQUCoIIFDjCCBQqgJDAiBgkqhkiC9xIBAgIGCSqGSIb3EgECAgYKKwYBBAGCNwICCqKCBOAEggTcYIIE2AYJKoZIhvcSAQICAQBuggTHMIIEw6ADAgEFoQMCAQ6iBwMFACAAAACjggPgYYID3DCCA9igAwIBBaEVGxNXMkszLlZNTkVUMS5WTS5CQVNFoi8wLaADAgECoSYwJBsEbGRhcBscdzJrMy0xMDEudzJrMy52bW5ldDEudm0uYmFzZaOCA4cwggODoAMCARehAwIBB6KCA3UEggNxamHIhrpY0WIRPbQmj3dDoX60dhg7wMUZrd6nZVajcB3jSQPmvT8_3KCwG7zLmoaTsj-o0ZheFJIuTKGbBakHaYRaWFhRW7pK8tflm_qGNChaLpVPtRg3i40_J0S5u_iEK0gHh5_yjlW_ukln6MHTtsTjWKVhxUq7wct8l7ZQP-Wbf-5kI9_-Zv5ty4rwDmnFPWtXb1UGmQQ4MQ-33RRooy_Y4N6rQLFez9Q4VoNwFAoe2v7nAaSktOezqu_cSxr_WGiu_lo2KU1d1ofVpkkxQ9Ot6AMcmNKPbH89zqQUNRMvZ18mlA0faeVz5ezm7VpmER_59LAqjd0ZCG5bncCtyGoLwSMPG3Ff_EAE38Sn1feKTcMav4MK5uO_0hyH-lGWVJ4TD2oIG6_PQXCuIBx4o4KaAduleKLvlo8qtmaNgRTfzGXXA49VWL583ZJG1SJHkVJgpA5ZxIsIoe1hQn_TA5F8azS3AaS6mjgV1IKKIozSCdoTdibiApqr9sIAv3_WPPbUO7YYsxrEjglhNYnXSmlULpCc4NycV8d_fYm5Zt4gAFOljqWPI3RROWFjijDKSe8O7Gedkn44W12n1NPBpZFptGMLh0odlp5F0f43ggifQ4UCSVUJOzCOGWTTB5FScaqIbD2bZNhGyIyhNB_S9yt2Z51PJY9ke8BIIOQndsnsDQFGRlJ2OknYIsnSW2A5A-vWM4lSJZuDp0CkINadI6673wapLYikb_zY2BpHtuyZts6gSJzIPvFXV8QFPVOERvLmueuhLOSWm41t-bPvV0t9QBNBwvVVoA8CkWTl04coLAyHkbqMaYFiSOLlRKnBK3rrpin97qLhEWVeRLnCFZJMVFXqpKsyrqHZzvHYborPaw_03KuvTw4tmuZci7EGXgQY_xLUYmkwMVk4v-AKjQPo5w6d6p3J_3SFTLtNvfcApi53sm5QsT4tOWDJEzYMhMh-gB7T3z2w4nYEUIy3MMWgUsBoq-WCawG-n2LjO5r47bZmfFfLGqh5dDt3p0Mvdf464hH5avQa3vHhxQclb-X6K8yr5Sz4IW00EOY3hQbUJzQ0WDMtFTp3oWLExfGNnzGwwUKIDK0iKZgXIGFasmt8E0QuQxeKre5DZRDJG8nV1zXrlFPPOc71Eg4oYDd18Eg_AcPEi1sGDKfzpU18fJmkgckwgcagAwIBF6KBvgSBuwOrZWdgo1Ev7McDLaiyAUZZ8Ps063a0YeQETaJNFtRY4-HFiRnHTEwHIKr7h6lIFSNyokg6TRrpuVuFilKrqpTnqmQai5l9fmxuVwtZCMxUkVX15vEQyY1kiXhyerrjkh2lKkwf12vrEhvzOWvo-Y5Kzx6_w7b7ehNUwSGHPlkYXbkAMAhNl4ZHmNeeud8wdWyh-qeoCID3T32TZC2c614BKM7WqwlqTwFeWgMrQnAjHn_xvNCH6LUnAn0
+  credentials: asn1::ASN1Message &convert=$$.body.octetstring;
+};
+
 type BindRequest = unit {
   version: asn1::ASN1Message &convert=$$.body.num_value;
   name: asn1::ASN1Message &convert=$$.body.octetstring;
@@ -115,7 +134,8 @@ type BindRequest = unit {
       self.authType = BindAuthType(self.authentication.head.tag.data.num);
     }
   }
-  authSimpleStr: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
+  simpleCred: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
+  saslCred: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
   on %done {
     print "BindRequest", self;
   }

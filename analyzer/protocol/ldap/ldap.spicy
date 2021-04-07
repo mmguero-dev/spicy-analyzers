@@ -70,6 +70,10 @@ type ResultCode = enum {
   OTHER = 80
 };
 
+#public Type Result = unit {
+  #
+#}
+
 public type Message = unit {
   sequence: asn1::ASN1Message { assert self.sequence.head.tag.tpe == asn1::ASN1Type::SEQUENCE; }
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
@@ -122,7 +126,7 @@ type SaslCredentials = unit {
   mechanism: asn1::ASN1Message &convert=$$.body.octetstring;
   # TODO: this SASL credentials octet string could be parsed a lot more
   # see: https://lapo.it/asn1js/#MIQAAAVCAgEHYIQAAAU5AgEDBACjhAAABS4ECkdTUy1TUE5FR08EggUeYIIFGgYGKwYBBQUCoIIFDjCCBQqgJDAiBgkqhkiC9xIBAgIGCSqGSIb3EgECAgYKKwYBBAGCNwICCqKCBOAEggTcYIIE2AYJKoZIhvcSAQICAQBuggTHMIIEw6ADAgEFoQMCAQ6iBwMFACAAAACjggPgYYID3DCCA9igAwIBBaEVGxNXMkszLlZNTkVUMS5WTS5CQVNFoi8wLaADAgECoSYwJBsEbGRhcBscdzJrMy0xMDEudzJrMy52bW5ldDEudm0uYmFzZaOCA4cwggODoAMCARehAwIBB6KCA3UEggNxamHIhrpY0WIRPbQmj3dDoX60dhg7wMUZrd6nZVajcB3jSQPmvT8_3KCwG7zLmoaTsj-o0ZheFJIuTKGbBakHaYRaWFhRW7pK8tflm_qGNChaLpVPtRg3i40_J0S5u_iEK0gHh5_yjlW_ukln6MHTtsTjWKVhxUq7wct8l7ZQP-Wbf-5kI9_-Zv5ty4rwDmnFPWtXb1UGmQQ4MQ-33RRooy_Y4N6rQLFez9Q4VoNwFAoe2v7nAaSktOezqu_cSxr_WGiu_lo2KU1d1ofVpkkxQ9Ot6AMcmNKPbH89zqQUNRMvZ18mlA0faeVz5ezm7VpmER_59LAqjd0ZCG5bncCtyGoLwSMPG3Ff_EAE38Sn1feKTcMav4MK5uO_0hyH-lGWVJ4TD2oIG6_PQXCuIBx4o4KaAduleKLvlo8qtmaNgRTfzGXXA49VWL583ZJG1SJHkVJgpA5ZxIsIoe1hQn_TA5F8azS3AaS6mjgV1IKKIozSCdoTdibiApqr9sIAv3_WPPbUO7YYsxrEjglhNYnXSmlULpCc4NycV8d_fYm5Zt4gAFOljqWPI3RROWFjijDKSe8O7Gedkn44W12n1NPBpZFptGMLh0odlp5F0f43ggifQ4UCSVUJOzCOGWTTB5FScaqIbD2bZNhGyIyhNB_S9yt2Z51PJY9ke8BIIOQndsnsDQFGRlJ2OknYIsnSW2A5A-vWM4lSJZuDp0CkINadI6673wapLYikb_zY2BpHtuyZts6gSJzIPvFXV8QFPVOERvLmueuhLOSWm41t-bPvV0t9QBNBwvVVoA8CkWTl04coLAyHkbqMaYFiSOLlRKnBK3rrpin97qLhEWVeRLnCFZJMVFXqpKsyrqHZzvHYborPaw_03KuvTw4tmuZci7EGXgQY_xLUYmkwMVk4v-AKjQPo5w6d6p3J_3SFTLtNvfcApi53sm5QsT4tOWDJEzYMhMh-gB7T3z2w4nYEUIy3MMWgUsBoq-WCawG-n2LjO5r47bZmfFfLGqh5dDt3p0Mvdf464hH5avQa3vHhxQclb-X6K8yr5Sz4IW00EOY3hQbUJzQ0WDMtFTp3oWLExfGNnzGwwUKIDK0iKZgXIGFasmt8E0QuQxeKre5DZRDJG8nV1zXrlFPPOc71Eg4oYDd18Eg_AcPEi1sGDKfzpU18fJmkgckwgcagAwIBF6KBvgSBuwOrZWdgo1Ev7McDLaiyAUZZ8Ps063a0YeQETaJNFtRY4-HFiRnHTEwHIKr7h6lIFSNyokg6TRrpuVuFilKrqpTnqmQai5l9fmxuVwtZCMxUkVX15vEQyY1kiXhyerrjkh2lKkwf12vrEhvzOWvo-Y5Kzx6_w7b7ehNUwSGHPlkYXbkAMAhNl4ZHmNeeud8wdWyh-qeoCID3T32TZC2c614BKM7WqwlqTwFeWgMrQnAjHn_xvNCH6LUnAn0
-  credentials: asn1::ASN1Message &convert=$$.body.octetstring;
+  creds: asn1::ASN1Message &optional &convert=$$.body.octetstring;
 };
 
 type BindRequest = unit {
@@ -134,15 +138,21 @@ type BindRequest = unit {
       self.authType = BindAuthType(self.authentication.head.tag.data.num);
     }
   }
-  simpleCred: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
-  saslCred: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
+  simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
+  saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
   on %done {
     print "BindRequest", self;
   }
 };
 
+
+# BindResponse ::= [APPLICATION 1] SEQUENCE {
+#     COMPONENTS OF LDAPResult,
+#     serverSaslCreds    [7] OCTET STRING OPTIONAL }
+
 type BindResponse = unit {
 
+  serverSaslCreds: asn1::ASN1Message &optional &convert=$$.body.octetstring;
   on %done {
     print "BindResponse";
   }

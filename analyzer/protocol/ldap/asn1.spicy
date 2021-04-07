@@ -130,7 +130,7 @@ type ASN1ObjectIdentifier = unit(len: uint64) {
     self.temp = 0;
   }
 
-  sublist: oidnibble[] &length=(len - 1) foreach {
+  sublist: oidnibble[len - 1] foreach {
     self.temp = ( self.temp<<7 ) | $$.data.num;
     if ( $$.data.more != 1 ) {
       self.oid.push_back(self.temp);
@@ -161,9 +161,9 @@ public type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-    ### TODO: not exactly sure how to specify how many messages we will have, as I don't think we know (other than
-    ### by byte size) here. Come back to this!
-    ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[];
+    ### TODO: not exactly sure how to specify how many messages we will have, as I don't think we know
+    ### (i.e., head.len.len is byte size, not element count) here.
+    ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[???];
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages_void_placeholder: void;
     * -> : bytes &size=head.len.len {
       print "Unsupported ASN1Body type:", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;

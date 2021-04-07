@@ -70,9 +70,14 @@ type ResultCode = enum {
   OTHER = 80
 };
 
-#public Type Result = unit {
-  #
-#}
+public type Result = unit {
+  code: asn1::ASN1Message &convert=$$.body.num_value;
+  matchedDN: asn1::ASN1Message &convert=$$.body.octetstring;
+  diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring;
+  # TODO: implement referral
+  # https://tools.ietf.org/html/rfc4511#section-4.1.10
+  referral: bytes &eod;
+};
 
 public type Message = unit {
   sequence: asn1::ASN1Message { assert self.sequence.head.tag.tpe == asn1::ASN1Type::SEQUENCE; }
@@ -145,16 +150,11 @@ type BindRequest = unit {
   }
 };
 
-
-# BindResponse ::= [APPLICATION 1] SEQUENCE {
-#     COMPONENTS OF LDAPResult,
-#     serverSaslCreds    [7] OCTET STRING OPTIONAL }
-
 type BindResponse = unit {
-
-  serverSaslCreds: asn1::ASN1Message &optional &convert=$$.body.octetstring;
+  result: Result;
+  # serverSaslCreds: asn1::ASN1Message &optional &convert=$$.body.octetstring;
   on %done {
-    print "BindResponse";
+    print "BindResponse", self;
   }
 };
 
@@ -164,7 +164,7 @@ type BindResponse = unit {
 type UnbindRequest = unit {
 
   on %done {
-    print "UnbindRequest";
+    print "UnbindRequest", self;
   }
 };
 
@@ -174,21 +174,21 @@ type UnbindRequest = unit {
 type SearchRequest = unit {
 
   on %done {
-    print "SearchRequest";
+    print "SearchRequest", self;
   }
 };
 
 type SearchResultEntry = unit {
 
   on %done {
-    print "SearchResultEntry";
+    print "SearchResultEntry", self;
   }
 };
 
 type SearchResultDone = unit {
 
   on %done {
-    print "SearchResultDone";
+    print "SearchResultDone", self;
   }
 };
 
@@ -198,14 +198,14 @@ type SearchResultDone = unit {
 type ModifyRequest = unit {
 
   on %done {
-    print "ModifyRequest";
+    print "ModifyRequest", self;
   }
 };
 
 type ModifyResponse = unit {
 
   on %done {
-    print "ModifyResponse";
+    print "ModifyResponse", self;
   }
 };
 
@@ -215,14 +215,14 @@ type ModifyResponse = unit {
 type AddRequest = unit {
 
   on %done {
-    print "AddRequest";
+    print "AddRequest", self;
   }
 };
 
 type AddResponse = unit {
 
   on %done {
-    print "AddResponse";
+    print "AddResponse", self;
   }
 };
 
@@ -232,14 +232,14 @@ type AddResponse = unit {
 type DelRequest = unit {
 
   on %done {
-    print "DelRequest";
+    print "DelRequest", self;
   }
 };
 
 type DelResponse = unit {
 
   on %done {
-    print "DelResponse";
+    print "DelResponse", self;
   }
 };
 
@@ -249,14 +249,14 @@ type DelResponse = unit {
 type ModDNRequest = unit {
 
   on %done {
-    print "ModDNRequest";
+    print "ModDNRequest", self;
   }
 };
 
 type ModDNResponse = unit {
 
   on %done {
-    print "ModDNResponse";
+    print "ModDNResponse", self;
   }
 };
 
@@ -266,14 +266,14 @@ type ModDNResponse = unit {
 type CompareRequest = unit {
 
   on %done {
-    print "CompareRequest";
+    print "CompareRequest", self;
   }
 };
 
 type CompareResponse = unit {
 
   on %done {
-    print "CompareResponse";
+    print "CompareResponse", self;
   }
 };
 
@@ -283,14 +283,14 @@ type CompareResponse = unit {
 type AbandonRequest = unit {
 
   on %done {
-    print "AbandonRequest";
+    print "AbandonRequest", self;
   }
 };
 
 type SearchResultReference = unit {
 
   on %done {
-    print "SearchResultReference";
+    print "SearchResultReference", self;
   }
 };
 
@@ -300,14 +300,14 @@ type SearchResultReference = unit {
 type ExtendedRequest = unit {
 
   on %done {
-    print "ExtendedRequest";
+    print "ExtendedRequest", self;
   }
 };
 
 type ExtendedResponse = unit {
 
   on %done {
-    print "ExtendedResponse";
+    print "ExtendedResponse", self;
   }
 };
 
@@ -317,6 +317,6 @@ type ExtendedResponse = unit {
 type IntermediateResponse = unit {
 
   on %done {
-    print "IntermediateResponse";
+    print "IntermediateResponse", self;
   }
 };

@@ -80,7 +80,11 @@ public type Result = unit {
 };
 
 public type Message = unit {
-  sequence: asn1::ASN1Message { assert self.sequence.head.tag.tpe == asn1::ASN1Type::SEQUENCE; }
+  sequence: asn1::ASN1Message {
+    if (self.sequence.head.tag.tpe != asn1::ASN1Type::SEQUENCE) {
+      throw "LDAP message is not ASN.1 sequence as described in RFC 4511";
+    }
+  }
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
   var opcode: ProtocolOpcode;
   operation: asn1::ASN1Message {

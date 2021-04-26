@@ -4,9 +4,9 @@ import zeek;
 import ldap;
 
 on ldap::Message::%done {
-    zeek::confirm_protocol();
+  zeek::confirm_protocol();
 }
 
 on ldap::Message::%error {
-    zeek::reject_protocol("error while parsing LDAP request");
+  zeek::reject_protocol("error while parsing LDAP request");
 }

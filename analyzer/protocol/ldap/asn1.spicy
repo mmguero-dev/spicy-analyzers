@@ -102,8 +102,7 @@ type ASN1String = unit(tag: ASN1Tag, len: uint64) {
     # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF16BE);
     # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
     * -> : bytes &size=len {
-      print "Unsupported ASN1String type:", tag.tpe, tag.data.constructed;
-      assert False;
+      throw "Unsupported ASN1String type";
     }
   };
 };
@@ -156,7 +155,11 @@ public type ASN1Body = unit(head: ASN1Header) {
     ### TODO - bail out if boolean length != 1
     ASN1Type::BOOLEAN -> bool_value: uint8;
     ASN1Type::INTEGER, ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len &convert=$$.to_int(spicy::ByteOrder::Big);
-    ASN1Type::NULLVAL -> : void { assert head.len.len == 0; }
+    ASN1Type::NULLVAL -> : void {
+      if (head.len.len != 0) {
+        throw "ASN1Type::NULLVAL detected with non-zero length";
+      }
+    }
     ASN1Type::BITSTRING -> bitstring: ASN1BitString(head.len.len, head.tag.data.constructed);
     ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
@@ -165,8 +168,7 @@ public type ASN1Body = unit(head: ASN1Header) {
     ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &size=head.len.len;
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages_void_placeholder: void;
     * -> : bytes &size=head.len.len {
-      print "Unsupported ASN1Body type:", head.tag.tpe, head.tag.data.constructed, head.tag.data.class;
-      assert False;
+      throw "Unsupported ASN1Body type";
     }
   };
 };

@@ -115,10 +115,11 @@ public type Message = unit {
     ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse(self.messageID);
     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse(self.messageID);
   };
-  data: bytes &eod;
+  # TODO: this catch-all isn't really correct, but until I'm parsing everything I think it should catch the end of a message
+  data: bytes &until-including=b"\x00";
 
   on %done {
-    print "Message", self.messageID, self.opcode;
+    print "Message", self.messageID, self.opcode, |self.data|;
   }
 };
 
@@ -140,16 +141,16 @@ type SaslCredentials = unit {
 };
 
 type BindRequest = unit(messageID : int64) {
-  version: asn1::ASN1Message &convert=$$.body.num_value;
-  name: asn1::ASN1Message &convert=$$.body.octetstring;
-  var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
-  authentication: asn1::ASN1Message {
-    if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
-      self.authType = cast<BindAuthType>(self.authentication.head.tag.data.num);
-    }
-  }
-  simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
-  saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
+  # version: asn1::ASN1Message &convert=$$.body.num_value;
+  # name: asn1::ASN1Message &convert=$$.body.octetstring;
+  # var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
+  # authentication: asn1::ASN1Message {
+  #   if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
+  #     self.authType = cast<BindAuthType>(self.authentication.head.tag.data.num);
+  #   }
+  # }
+  # simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
+  # saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
 
   on %done {
     print "BindRequest", messageID, self;
@@ -157,7 +158,7 @@ type BindRequest = unit(messageID : int64) {
 };
 
 type BindResponse = unit(messageID : int64) {
-  result: Result;
+  # result: Result;
 
   # TODO: parse this SASL credentials
   # _serverSaslCreds: bytes &eod;

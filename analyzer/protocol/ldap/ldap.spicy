@@ -4,7 +4,7 @@ import asn1;
 
 # https://tools.ietf.org/html/rfc4511
 
-type ProtocolOpcode = enum {
+public type ProtocolOpcode = enum {
   BIND_REQUEST = 0,
   BIND_RESPONSE = 1,
   UNBIND_REQUEST = 2,
@@ -28,7 +28,7 @@ type ProtocolOpcode = enum {
   INTERMEDIATE_RESPONSE = 25
 };
 
-type ResultCode = enum {
+public type ResultCode = enum {
   SUCCESS = 0,
   OPERATIONS_ERROR = 1,
   PROTOCOL_ERROR = 2,
@@ -156,8 +156,8 @@ type BindResponse = unit {
   result: Result;
 
   # TODO: parse this SASL credentials
-  _serverSaslCreds: bytes &eod;
-  serverSaslCreds: asn1::ASN1Message &optional &parse-from=self._serverSaslCreds if ( |self._serverSaslCreds| > 0 );
+  # _serverSaslCreds: bytes &eod;
+  # serverSaslCreds: asn1::ASN1Message &optional &parse-from=self._serverSaslCreds if ( |self._serverSaslCreds| > 0 );
 
   on %done {
     print "BindResponse", self;

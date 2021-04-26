@@ -14,7 +14,7 @@ export {
     # Is orig
     is_orig: bool &log &optional;
     # Message ID
-    message_id: count &log &optional;
+    message_id: int &log &optional;
     # Operation
     opcode: ldap::ProtocolOpcode &log &optional;
 
@@ -28,7 +28,7 @@ export {
   # to the logging framework.
   global log_ldap: event(rec: ldap::Info);
 
-  global ldap::message: event(c: connection, is_orig: bool, message_id: count, opcode: ldap::ProtocolOpcode);
+  global ldap::message: event(c: connection, is_orig: bool, message_id: int, opcode: ldap::ProtocolOpcode);
 
 }
 
@@ -54,7 +54,7 @@ event protocol_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &pr
   }
 }
 
-event ldap::message(c: connection, is_orig: bool, message_id: count, opcode: ldap::ProtocolOpcode) {
+event ldap::message(c: connection, is_orig: bool, message_id: int, opcode: ldap::ProtocolOpcode) {
   set_session(c);
   c$ldap$is_orig = is_orig;
   c$ldap$message_id = message_id;

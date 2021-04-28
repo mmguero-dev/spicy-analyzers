@@ -178,3 +178,8 @@ public type ASN1Message = unit {
   body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
   application_void_placeholder: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
 };
+
+public type ASN1MessageHeadless = unit(head: ASN1Header) {
+  body: ASN1Body(head) if ( head.tag.class == ASN1Class::UNIVERSAL );
+  application_void_placeholder: void if ( head.tag.class != ASN1Class::UNIVERSAL );
+};

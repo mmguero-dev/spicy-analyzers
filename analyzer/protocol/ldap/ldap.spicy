@@ -80,11 +80,25 @@ public type Result = unit {
 };
 
 public type Message = unit {
-  sequence: asn1::ASN1Message {
-    if (self.sequence.head.tag.tpe != asn1::ASN1Type::SEQUENCE) {
+  %random-access; # so I can use offset() to subtract the header size out of the body size
+
+  # parse the header out to validate the ASN.1 envelope type (sequence) before we parse the body
+  head: asn1::ASN1Header {
+    if (self.head.tag.tpe != asn1::ASN1Type::SEQUENCE) {
       throw "LDAP message is not ASN.1 sequence as described in RFC 4511";
     }
   }
+
+  # parse the body, letting it know about the header and its total size
+  body: MessageBody(self.head, self.head.total_length-self.offset());
+
+  on %done {
+    print "Message", self.head.total_length;
+  }
+};
+
+public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
+  sequence: asn1::ASN1MessageHeadless(head);
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
   var opcode: ProtocolOpcode;
   operation: asn1::ASN1Message {
@@ -116,12 +130,12 @@ public type Message = unit {
     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse(self.messageID);
   };
   # TODO: this catch-all isn't really correct, but until I'm parsing everything I think it should catch the end of a message
-  data: bytes &eod; # until-including=b"\x00";
+  data: bytes &eod;
 
   on %done {
-    print "Message", self.messageID, self.opcode, |self.data|;
+    print "MessageBody", self.messageID, self.opcode, |self.data|, bodyLen;
   }
-};
+} &size=bodyLen;
 
 # Bind Operation
 # https://tools.ietf.org/html/rfc4511#section-4.2

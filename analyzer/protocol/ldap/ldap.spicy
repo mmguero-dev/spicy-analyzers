@@ -76,7 +76,7 @@ public type Result = unit {
   diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring;
   # TODO: implement referral
   # https://tools.ietf.org/html/rfc4511#section-4.1.10
-  referral: bytes &eod if (self.code == ResultCode::REFERRAL);
+  # referral: bytes &eod if (self.code == ResultCode::REFERRAL);
 };
 
 public type Message = unit {
@@ -116,7 +116,7 @@ public type Message = unit {
     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse(self.messageID);
   };
   # TODO: this catch-all isn't really correct, but until I'm parsing everything I think it should catch the end of a message
-  data: bytes &until-including=b"\x00";
+  data: bytes &eod; # until-including=b"\x00";
 
   on %done {
     print "Message", self.messageID, self.opcode, |self.data|;

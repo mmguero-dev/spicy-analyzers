@@ -74,6 +74,7 @@ public type Result = unit {
   code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value));
   matchedDN: asn1::ASN1Message &convert=$$.body.octetstring;
   diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring;
+
   # TODO: implement referral
   # https://tools.ietf.org/html/rfc4511#section-4.1.10
   # referral: bytes &eod if (self.code == ResultCode::REFERRAL);
@@ -155,25 +156,25 @@ type SaslCredentials = unit {
 };
 
 type BindRequest = unit(messageID : int64) {
-  # version: asn1::ASN1Message &convert=$$.body.num_value;
-  # name: asn1::ASN1Message &convert=$$.body.octetstring;
-  # var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
-  # authentication: asn1::ASN1Message {
-  #   if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
-  #     self.authType = cast<BindAuthType>(self.authentication.head.tag.data.num);
-  #   }
-  # }
-  # simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
-  # saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
+  version: asn1::ASN1Message &convert=$$.body.num_value;
+  name: asn1::ASN1Message &convert=$$.body.octetstring;
+  var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
+  authentication: asn1::ASN1Message {
+    if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
+      self.authType = cast<BindAuthType>(self.authentication.head.tag.data.num);
+    }
+  }
+  simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
+  saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
 
   data: bytes &eod;
   on %done {
-    print "BindRequest", messageID, self;
+    print "BindRequest", messageID, |self.data|, self;
   }
 };
 
 type BindResponse = unit(messageID : int64) {
-  # result: Result;
+  result: Result;
 
   # TODO: parse this SASL credentials
   # _serverSaslCreds: bytes &eod;
@@ -181,7 +182,7 @@ type BindResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "BindResponse", messageID, self;
+    print "BindResponse", messageID, |self.data|, self;
   }
 };
 
@@ -192,7 +193,7 @@ type UnbindRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "UnbindRequest", messageID, self;
+    print "UnbindRequest", messageID, |self.data|, self;
   }
 };
 
@@ -203,7 +204,7 @@ type SearchRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "SearchRequest", messageID, self;
+    print "SearchRequest", messageID, |self.data|, self;
   }
 };
 
@@ -211,7 +212,7 @@ type SearchResultEntry = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "SearchResultEntry", messageID, self;
+    print "SearchResultEntry", messageID, |self.data|, self;
   }
 };
 
@@ -219,7 +220,7 @@ type SearchResultDone = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "SearchResultDone", messageID, self;
+    print "SearchResultDone", messageID, |self.data|, self;
   }
 };
 
@@ -230,7 +231,7 @@ type ModifyRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "ModifyRequest", messageID, self;
+    print "ModifyRequest", messageID, |self.data|, self;
   }
 };
 
@@ -238,7 +239,7 @@ type ModifyResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "ModifyResponse", messageID, self;
+    print "ModifyResponse", messageID, |self.data|, self;
   }
 };
 
@@ -249,7 +250,7 @@ type AddRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "AddRequest", messageID, self;
+    print "AddRequest", messageID, |self.data|, self;
   }
 };
 
@@ -257,7 +258,7 @@ type AddResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "AddResponse", messageID, self;
+    print "AddResponse", messageID, |self.data|, self;
   }
 };
 
@@ -268,7 +269,7 @@ type DelRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "DelRequest", messageID, self;
+    print "DelRequest", messageID, |self.data|, self;
   }
 };
 
@@ -276,7 +277,7 @@ type DelResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "DelResponse", messageID, self;
+    print "DelResponse", messageID, |self.data|, self;
   }
 };
 
@@ -287,7 +288,7 @@ type ModDNRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "ModDNRequest", messageID, self;
+    print "ModDNRequest", messageID, |self.data|, self;
   }
 };
 
@@ -295,7 +296,7 @@ type ModDNResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "ModDNResponse", messageID, self;
+    print "ModDNResponse", messageID, |self.data|, self;
   }
 };
 
@@ -306,7 +307,7 @@ type CompareRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "CompareRequest", messageID, self;
+    print "CompareRequest", messageID, |self.data|, self;
   }
 };
 
@@ -314,7 +315,7 @@ type CompareResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "CompareResponse", messageID, self;
+    print "CompareResponse", messageID, |self.data|, self;
   }
 };
 
@@ -325,7 +326,7 @@ type AbandonRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "AbandonRequest", messageID, self;
+    print "AbandonRequest", messageID, |self.data|, self;
   }
 };
 
@@ -333,7 +334,7 @@ type SearchResultReference = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "SearchResultReference", messageID, self;
+    print "SearchResultReference", messageID, |self.data|, self;
   }
 };
 
@@ -344,7 +345,7 @@ type ExtendedRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "ExtendedRequest", messageID, self;
+    print "ExtendedRequest", messageID, |self.data|, self;
   }
 };
 
@@ -352,7 +353,7 @@ type ExtendedResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "ExtendedResponse", messageID, self;
+    print "ExtendedResponse", messageID, |self.data|, self;
   }
 };
 
@@ -363,6 +364,6 @@ type IntermediateResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "IntermediateResponse", messageID, self;
+    print "IntermediateResponse", messageID, |self.data|, self;
   }
 };

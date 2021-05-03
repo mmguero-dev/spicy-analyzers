@@ -108,6 +108,7 @@ public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
   sequence: asn1::ASN1MessageHeadless(head);
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
   var opcode: ProtocolOpcode;
+  var hasResult: bool = False;
   var result: ResultCode;
   operation: asn1::ASN1Message {
     if (self.operation.head.tag.class == asn1::ASN1Class::APPLICATION) {
@@ -188,6 +189,7 @@ type BindResponse = unit(inout message: MessageBody) {
   data: bytes &eod;
   on %done {
     message.result = self.result.code;
+    message.hasResult = True;
     print "BindResponse", message.messageID, |self.data|, self;
   }
 };

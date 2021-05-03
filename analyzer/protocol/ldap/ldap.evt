@@ -9,4 +9,4 @@ protocol analyzer spicy::ldap_udp over UDP:
 import ldap;
 import ldap_zeek;
 
-on ldap::Message -> event ldap::message($conn, $is_orig, self.body.messageID, self.body.opcode, self.body.hasResult, self.body.result);
+on ldap::Message -> event ldap::message($conn, $is_orig, self.body.messageID, self.body.opcode, self.body?.result, self.body.result);

@@ -80,6 +80,10 @@ public type Result = unit {
   # referral: bytes &eod if (self.code == ResultCode::REFERRAL);
 };
 
+public type Messages = unit {
+  : Message[];
+};
+
 public type Message = unit {
   %random-access;
 

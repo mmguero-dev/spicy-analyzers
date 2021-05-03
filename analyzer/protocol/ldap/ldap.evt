@@ -1,10 +1,10 @@
-protocol analyzer spicy::ldap_udp over UDP:
-  parse with ldap::Message,
-  ports {389/udp, 3268/udp};
-
 protocol analyzer spicy::ldap_tcp over TCP:
-  parse with ldap::Message,
+  parse with ldap::Messages,
   ports {389/tcp, 3268/tcp};
+
+protocol analyzer spicy::ldap_udp over UDP:
+  parse with ldap::Messages,
+  ports {389/udp, 3268/udp};
 
 import ldap;
 import ldap_zeek;

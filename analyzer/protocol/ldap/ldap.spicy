@@ -108,37 +108,39 @@ public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
   sequence: asn1::ASN1MessageHeadless(head);
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
   var opcode: ProtocolOpcode;
+  var hasResult: bool = False;
+  var result: ResultCode;
   operation: asn1::ASN1Message {
     if (self.operation.head.tag.class == asn1::ASN1Class::APPLICATION) {
       self.opcode = cast<ProtocolOpcode>(self.operation.head.tag.data.num);
     }
   }
   switch ( self.opcode ) {
-    ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest(self.messageID);
-    ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse(self.messageID);
-    ProtocolOpcode::UNBIND_REQUEST -> UNBIND_REQUEST: UnbindRequest(self.messageID);
-    ProtocolOpcode::SEARCH_REQUEST -> SEARCH_REQUEST: SearchRequest(self.messageID);
-    ProtocolOpcode::SEARCH_RESULT_ENTRY -> SEARCH_RESULT_ENTRY: SearchResultEntry(self.messageID);
-    ProtocolOpcode::SEARCH_RESULT_DONE -> SEARCH_RESULT_DONE: SearchResultDone(self.messageID);
-    ProtocolOpcode::MODIFY_REQUEST -> MODIFY_REQUEST: ModifyRequest(self.messageID);
-    ProtocolOpcode::MODIFY_RESPONSE -> MODIFY_RESPONSE: ModifyResponse(self.messageID);
-    ProtocolOpcode::ADD_REQUEST -> ADD_REQUEST: AddRequest(self.messageID);
-    ProtocolOpcode::ADD_RESPONSE -> ADD_RESPONSE: AddResponse(self.messageID);
-    ProtocolOpcode::DEL_REQUEST -> DEL_REQUEST: DelRequest(self.messageID);
-    ProtocolOpcode::DEL_RESPONSE -> DEL_RESPONSE: DelResponse(self.messageID);
-    ProtocolOpcode::MOD_DN_REQUEST -> MOD_DN_REQUEST: ModDNRequest(self.messageID);
-    ProtocolOpcode::MOD_DN_RESPONSE -> MOD_DN_RESPONSE: ModDNResponse(self.messageID);
-    ProtocolOpcode::COMPARE_REQUEST -> COMPARE_REQUEST: CompareRequest(self.messageID);
-    ProtocolOpcode::COMPARE_RESPONSE -> COMPARE_RESPONSE: CompareResponse(self.messageID);
-    ProtocolOpcode::ABANDON_REQUEST -> ABANDON_REQUEST: AbandonRequest(self.messageID);
-    ProtocolOpcode::SEARCH_RESULT_REFERENCE -> SEARCH_RESULT_REFERENCE: SearchResultReference(self.messageID);
-    ProtocolOpcode::EXTENDED_REQUEST -> EXTENDED_REQUEST: ExtendedRequest(self.messageID);
-    ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse(self.messageID);
-    ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse(self.messageID);
+    ProtocolOpcode::BIND_REQUEST -> BIND_REQUEST: BindRequest(self);
+    ProtocolOpcode::BIND_RESPONSE -> BIND_RESPONSE: BindResponse(self);
+    ProtocolOpcode::UNBIND_REQUEST -> UNBIND_REQUEST: UnbindRequest(self);
+    ProtocolOpcode::SEARCH_REQUEST -> SEARCH_REQUEST: SearchRequest(self);
+    ProtocolOpcode::SEARCH_RESULT_ENTRY -> SEARCH_RESULT_ENTRY: SearchResultEntry(self);
+    ProtocolOpcode::SEARCH_RESULT_DONE -> SEARCH_RESULT_DONE: SearchResultDone(self);
+    ProtocolOpcode::MODIFY_REQUEST -> MODIFY_REQUEST: ModifyRequest(self);
+    ProtocolOpcode::MODIFY_RESPONSE -> MODIFY_RESPONSE: ModifyResponse(self);
+    ProtocolOpcode::ADD_REQUEST -> ADD_REQUEST: AddRequest(self);
+    ProtocolOpcode::ADD_RESPONSE -> ADD_RESPONSE: AddResponse(self);
+    ProtocolOpcode::DEL_REQUEST -> DEL_REQUEST: DelRequest(self);
+    ProtocolOpcode::DEL_RESPONSE -> DEL_RESPONSE: DelResponse(self);
+    ProtocolOpcode::MOD_DN_REQUEST -> MOD_DN_REQUEST: ModDNRequest(self);
+    ProtocolOpcode::MOD_DN_RESPONSE -> MOD_DN_RESPONSE: ModDNResponse(self);
+    ProtocolOpcode::COMPARE_REQUEST -> COMPARE_REQUEST: CompareRequest(self);
+    ProtocolOpcode::COMPARE_RESPONSE -> COMPARE_RESPONSE: CompareResponse(self);
+    ProtocolOpcode::ABANDON_REQUEST -> ABANDON_REQUEST: AbandonRequest(self);
+    ProtocolOpcode::SEARCH_RESULT_REFERENCE -> SEARCH_RESULT_REFERENCE: SearchResultReference(self);
+    ProtocolOpcode::EXTENDED_REQUEST -> EXTENDED_REQUEST: ExtendedRequest(self);
+    ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse(self);
+    ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse(self);
   };
 
   on %done {
-    print "MessageBody", self.messageID, self.opcode, bodyLen;
+    print "MessageBody", self.messageID, self.opcode, self.result, bodyLen;
   }
 } &size=bodyLen;
 
@@ -159,7 +161,7 @@ type SaslCredentials = unit {
   creds: asn1::ASN1Message &optional &parse-from=self._creds if ( |self._creds| > 0 );
 };
 
-type BindRequest = unit(messageID : int64) {
+type BindRequest = unit(inout message: MessageBody) {
   version: asn1::ASN1Message &convert=$$.body.num_value;
   name: asn1::ASN1Message &convert=$$.body.octetstring;
   var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
@@ -173,11 +175,11 @@ type BindRequest = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "BindRequest", messageID, |self.data|, self;
+    print "BindRequest", message.messageID, |self.data|, self;
   }
 };
 
-type BindResponse = unit(messageID : int64) {
+type BindResponse = unit(inout message: MessageBody) {
   result: Result;
 
   # TODO: parse this SASL credentials
@@ -186,188 +188,190 @@ type BindResponse = unit(messageID : int64) {
 
   data: bytes &eod;
   on %done {
-    print "BindResponse", messageID, |self.data|, self;
+    message.result = self.result.code;
+    message.hasResult = True;
+    print "BindResponse", message.messageID, |self.data|, self;
   }
 };
 
 # Unbind Operation
 # https://tools.ietf.org/html/rfc4511#section-4.3
 
-type UnbindRequest = unit(messageID : int64) {
+type UnbindRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "UnbindRequest", messageID, |self.data|, self;
+    print "UnbindRequest", message.messageID, |self.data|, self;
   }
 };
 
 # Search Operation
 # https://tools.ietf.org/html/rfc4511#section-4.5
 
-type SearchRequest = unit(messageID : int64) {
+type SearchRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "SearchRequest", messageID, |self.data|, self;
+    print "SearchRequest", message.messageID, |self.data|, self;
   }
 };
 
-type SearchResultEntry = unit(messageID : int64) {
+type SearchResultEntry = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "SearchResultEntry", messageID, |self.data|, self;
+    print "SearchResultEntry", message.messageID, |self.data|, self;
   }
 };
 
-type SearchResultDone = unit(messageID : int64) {
+type SearchResultDone = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "SearchResultDone", messageID, |self.data|, self;
+    print "SearchResultDone", message.messageID, |self.data|, self;
   }
 };
 
 # Modify Operation
 # https://tools.ietf.org/html/rfc4511#section-4.6
 
-type ModifyRequest = unit(messageID : int64) {
+type ModifyRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "ModifyRequest", messageID, |self.data|, self;
+    print "ModifyRequest", message.messageID, |self.data|, self;
   }
 };
 
-type ModifyResponse = unit(messageID : int64) {
+type ModifyResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "ModifyResponse", messageID, |self.data|, self;
+    print "ModifyResponse", message.messageID, |self.data|, self;
   }
 };
 
 # Add Operation
 # https://tools.ietf.org/html/rfc4511#section-4.7
 
-type AddRequest = unit(messageID : int64) {
+type AddRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "AddRequest", messageID, |self.data|, self;
+    print "AddRequest", message.messageID, |self.data|, self;
   }
 };
 
-type AddResponse = unit(messageID : int64) {
+type AddResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "AddResponse", messageID, |self.data|, self;
+    print "AddResponse", message.messageID, |self.data|, self;
   }
 };
 
 # Delete Operation
 # https://tools.ietf.org/html/rfc4511#section-4.8
 
-type DelRequest = unit(messageID : int64) {
+type DelRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "DelRequest", messageID, |self.data|, self;
+    print "DelRequest", message.messageID, |self.data|, self;
   }
 };
 
-type DelResponse = unit(messageID : int64) {
+type DelResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "DelResponse", messageID, |self.data|, self;
+    print "DelResponse", message.messageID, |self.data|, self;
   }
 };
 
 # Modify DN Operation
 # https://tools.ietf.org/html/rfc4511#section-4.8
 
-type ModDNRequest = unit(messageID : int64) {
+type ModDNRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "ModDNRequest", messageID, |self.data|, self;
+    print "ModDNRequest", message.messageID, |self.data|, self;
   }
 };
 
-type ModDNResponse = unit(messageID : int64) {
+type ModDNResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "ModDNResponse", messageID, |self.data|, self;
+    print "ModDNResponse", message.messageID, |self.data|, self;
   }
 };
 
 # Compare Operation
 # https://tools.ietf.org/html/rfc4511#section-4.10
 
-type CompareRequest = unit(messageID : int64) {
+type CompareRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "CompareRequest", messageID, |self.data|, self;
+    print "CompareRequest", message.messageID, |self.data|, self;
   }
 };
 
-type CompareResponse = unit(messageID : int64) {
+type CompareResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "CompareResponse", messageID, |self.data|, self;
+    print "CompareResponse", message.messageID, |self.data|, self;
   }
 };
 
 # Abandon Operation
 # https://tools.ietf.org/html/rfc4511#section-4.11
 
-type AbandonRequest = unit(messageID : int64) {
+type AbandonRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "AbandonRequest", messageID, |self.data|, self;
+    print "AbandonRequest", message.messageID, |self.data|, self;
   }
 };
 
-type SearchResultReference = unit(messageID : int64) {
+type SearchResultReference = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "SearchResultReference", messageID, |self.data|, self;
+    print "SearchResultReference", message.messageID, |self.data|, self;
   }
 };
 
 # Extended Operation
 # https://tools.ietf.org/html/rfc4511#section-4.12
 
-type ExtendedRequest = unit(messageID : int64) {
+type ExtendedRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "ExtendedRequest", messageID, |self.data|, self;
+    print "ExtendedRequest", message.messageID, |self.data|, self;
   }
 };
 
-type ExtendedResponse = unit(messageID : int64) {
+type ExtendedResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "ExtendedResponse", messageID, |self.data|, self;
+    print "ExtendedResponse", message.messageID, |self.data|, self;
   }
 };
 
 # IntermediateResponse Message
 # https://tools.ietf.org/html/rfc4511#section-4.13
 
-type IntermediateResponse = unit(messageID : int64) {
+type IntermediateResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    print "IntermediateResponse", messageID, |self.data|, self;
+    print "IntermediateResponse", message.messageID, |self.data|, self;
   }
 };

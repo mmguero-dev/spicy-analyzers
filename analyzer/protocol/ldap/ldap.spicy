@@ -131,11 +131,9 @@ public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
     ProtocolOpcode::EXTENDED_RESPONSE -> EXTENDED_RESPONSE: ExtendedResponse(self.messageID);
     ProtocolOpcode::INTERMEDIATE_RESPONSE -> INTERMEDIATE_RESPONSE: IntermediateResponse(self.messageID);
   };
-  # TODO: this catch-all should be getting everything else I'm not parsing yet
-  data: bytes &eod;
 
   on %done {
-    print "MessageBody", self.messageID, self.opcode, |self.data|, self.data, bodyLen;
+    print "MessageBody", self.messageID, self.opcode, bodyLen;
   }
 } &size=bodyLen;
 
@@ -168,6 +166,7 @@ type BindRequest = unit(messageID : int64) {
   # simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
   # saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
 
+  data: bytes &eod;
   on %done {
     print "BindRequest", messageID, self;
   }
@@ -180,6 +179,7 @@ type BindResponse = unit(messageID : int64) {
   # _serverSaslCreds: bytes &eod;
   # serverSaslCreds: asn1::ASN1Message &optional &parse-from=self._serverSaslCreds if ( |self._serverSaslCreds| > 0 );
 
+  data: bytes &eod;
   on %done {
     print "BindResponse", messageID, self;
   }
@@ -190,6 +190,7 @@ type BindResponse = unit(messageID : int64) {
 
 type UnbindRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "UnbindRequest", messageID, self;
   }
@@ -200,6 +201,7 @@ type UnbindRequest = unit(messageID : int64) {
 
 type SearchRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "SearchRequest", messageID, self;
   }
@@ -207,6 +209,7 @@ type SearchRequest = unit(messageID : int64) {
 
 type SearchResultEntry = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "SearchResultEntry", messageID, self;
   }
@@ -214,6 +217,7 @@ type SearchResultEntry = unit(messageID : int64) {
 
 type SearchResultDone = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "SearchResultDone", messageID, self;
   }
@@ -224,6 +228,7 @@ type SearchResultDone = unit(messageID : int64) {
 
 type ModifyRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "ModifyRequest", messageID, self;
   }
@@ -231,6 +236,7 @@ type ModifyRequest = unit(messageID : int64) {
 
 type ModifyResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "ModifyResponse", messageID, self;
   }
@@ -241,6 +247,7 @@ type ModifyResponse = unit(messageID : int64) {
 
 type AddRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "AddRequest", messageID, self;
   }
@@ -248,6 +255,7 @@ type AddRequest = unit(messageID : int64) {
 
 type AddResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "AddResponse", messageID, self;
   }
@@ -258,6 +266,7 @@ type AddResponse = unit(messageID : int64) {
 
 type DelRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "DelRequest", messageID, self;
   }
@@ -265,6 +274,7 @@ type DelRequest = unit(messageID : int64) {
 
 type DelResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "DelResponse", messageID, self;
   }
@@ -275,6 +285,7 @@ type DelResponse = unit(messageID : int64) {
 
 type ModDNRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "ModDNRequest", messageID, self;
   }
@@ -282,6 +293,7 @@ type ModDNRequest = unit(messageID : int64) {
 
 type ModDNResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "ModDNResponse", messageID, self;
   }
@@ -292,6 +304,7 @@ type ModDNResponse = unit(messageID : int64) {
 
 type CompareRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "CompareRequest", messageID, self;
   }
@@ -299,6 +312,7 @@ type CompareRequest = unit(messageID : int64) {
 
 type CompareResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "CompareResponse", messageID, self;
   }
@@ -309,6 +323,7 @@ type CompareResponse = unit(messageID : int64) {
 
 type AbandonRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "AbandonRequest", messageID, self;
   }
@@ -316,6 +331,7 @@ type AbandonRequest = unit(messageID : int64) {
 
 type SearchResultReference = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "SearchResultReference", messageID, self;
   }
@@ -326,6 +342,7 @@ type SearchResultReference = unit(messageID : int64) {
 
 type ExtendedRequest = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "ExtendedRequest", messageID, self;
   }
@@ -333,6 +350,7 @@ type ExtendedRequest = unit(messageID : int64) {
 
 type ExtendedResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "ExtendedResponse", messageID, self;
   }
@@ -343,6 +361,7 @@ type ExtendedResponse = unit(messageID : int64) {
 
 type IntermediateResponse = unit(messageID : int64) {
 
+  data: bytes &eod;
   on %done {
     print "IntermediateResponse", messageID, self;
   }

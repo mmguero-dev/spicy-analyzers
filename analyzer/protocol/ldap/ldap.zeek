@@ -21,10 +21,10 @@ export {
     message_id: int &log &optional;
 
     # Operation(s)
-    opcode: vector of ldap::ProtocolOpcode &log &optional;
+    opcode: set[ldap::ProtocolOpcode] &log &optional;
 
     # Result(s)
-    result: vector of ldap::ResultCode &log &optional;
+    result: set[ldap::ResultCode] &log &optional;
 
     # result matched DN(s)
     matchedDN: vector of string &log &optional;
@@ -122,13 +122,13 @@ event ldap::message(c: connection,
   set_session(c, message_id);
 
   if ( ! c$ldap_messages[message_id]?$opcode )
-    c$ldap_messages[message_id]$opcode = vector();
-  c$ldap_messages[message_id]$opcode += opcode;
+    c$ldap_messages[message_id]$opcode = set();
+  add c$ldap_messages[message_id]$opcode[opcode];
 
   if ( result != ldap::ResultCode_NOT_SET ) {
     if ( ! c$ldap_messages[message_id]?$result )
-      c$ldap_messages[message_id]$result = vector();
-    c$ldap_messages[message_id]$result += result;
+      c$ldap_messages[message_id]$result = set();
+    add c$ldap_messages[message_id]$result[result];
   }
 
   if ( matchedDN != "" ) {

@@ -30,7 +30,7 @@ export {
   # to the logging framework.
   global log_ldap: event(rec: ldap::Info);
 
-  global ldap::message: event(c: connection, is_orig: bool, message_id: int, opcode: ldap::ProtocolOpcode, hasResult: bool, result: ldap::ResultCode);
+  global ldap::message: event(c: connection, is_orig: bool, message_id: int, opcode: ldap::ProtocolOpcode, result: ldap::ResultCode);
 
 }
 
@@ -56,12 +56,12 @@ event protocol_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &pr
   }
 }
 
-event ldap::message(c: connection, is_orig: bool, message_id: int, opcode: ldap::ProtocolOpcode, has_result: bool, result: ldap::ResultCode) {
+event ldap::message(c: connection, is_orig: bool, message_id: int, opcode: ldap::ProtocolOpcode, result: ldap::ResultCode) {
   set_session(c);
   c$ldap$is_orig = is_orig;
   c$ldap$message_id = message_id;
   c$ldap$opcode = opcode;
-  if ( has_result ) {
+  if ( result !=  ldap::ResultCode_NOT_SET ) {
     c$ldap$result = result;
   }
   Log::write(ldap::LDAP_LOG, c$ldap);

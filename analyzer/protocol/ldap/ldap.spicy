@@ -67,7 +67,8 @@ public type ResultCode = enum {
   ENTRY_ALREADY_EXISTS = 68,
   OBJECT_CLASS_MODS_PROHIBITED = 69,
   AFFECTS_MULTIPLE_DSAS = 71,
-  OTHER = 80
+  OTHER = 80,
+  NOT_SET = 255
 };
 
 public type Result = unit {
@@ -108,8 +109,7 @@ public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
   sequence: asn1::ASN1MessageHeadless(head);
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
   var opcode: ProtocolOpcode;
-  var hasResult: bool = False;
-  var result: ResultCode;
+  var result: ResultCode = ResultCode::NOT_SET;
   operation: asn1::ASN1Message {
     if (self.operation.head.tag.class == asn1::ASN1Class::APPLICATION) {
       self.opcode = cast<ProtocolOpcode>(self.operation.head.tag.data.num);
@@ -189,7 +189,6 @@ type BindResponse = unit(inout message: MessageBody) {
   data: bytes &eod;
   on %done {
     message.result = self.result.code;
-    message.hasResult = True;
     print "BindResponse", message.messageID, |self.data|, self;
   }
 };

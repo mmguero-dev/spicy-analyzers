@@ -52,8 +52,13 @@ type LengthType = unit {
   var tag_len: uint8;
 
   switch ( self.data.islong ) {
-    0 -> : b"" { self.len = self.data.num; self.tag_len = 1; }
-    1 -> length_parse: bytes &size=self.data.num &convert=$$.to_uint(spicy::ByteOrder::Network) { self.len = self.length_parse; self.tag_len = self.data.num + 1; }
+    0 -> : b"" {
+      self.len = self.data.num; self.tag_len = 1;
+    }
+    1 -> length_parse: bytes &size=self.data.num
+                             &convert=$$.to_uint(spicy::ByteOrder::Network) {
+      self.len = self.length_parse; self.tag_len = self.data.num + 1;
+    }
   };
 };
 
@@ -94,14 +99,29 @@ type ASN1OctetString = unit(len: uint64, constructed: uint8) {
 };
 
 type ASN1String = unit(tag: ASN1Tag, len: uint64) {
+
   octetstring: ASN1OctetString(len, tag.data.constructed);
 
   switch ( tag.tpe ) {
-    ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::ASCII);
-    ASN1Type::UTF8String -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF8);
+
+    ASN1Type::PrintableString,
+    ASN1Type::GeneralizedTime,
+    ASN1Type::UTCTime -> value: bytes &size=self.octetstring.len
+                                      &parse-from=self.octetstring.value
+                                      &convert=$$.decode(hilti::Charset::ASCII);
+
+    ASN1Type::UTF8String -> value: bytes &size=self.octetstring.len
+                                         &parse-from=self.octetstring.value
+                                         &convert=$$.decode(hilti::Charset::UTF8);
+
     ### TODO ERROR - error out? (hilti::Charset::UTF32BE and hilti::Charset::UTF16BE don't exist)
-    # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF16BE);
-    # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len &parse-from=self.octetstring.value &convert=$$.decode(hilti::Charset::UTF32BE);
+    # ASN1Type::BMPString -> value: bytes &size=self.octetstring.len
+    #                                     &parse-from=self.octetstring.value
+    #                                     &convert=$$.decode(hilti::Charset::UTF16BE);
+    # ASN1Type::UniversalString -> value: bytes &size=self.octetstring.len
+    #                                           &parse-from=self.octetstring.value
+    #                                           &convert=$$.decode(hilti::Charset::UTF32BE);
+
     * -> : bytes &size=len {
       throw "Unsupported ASN1String type";
     }
@@ -120,7 +140,7 @@ type ASN1ObjectIdentifier = unit(len: uint64) {
   var temp: uint64;
   var oidstring: string;
 
-  first: uint8 if ( len >= 1) {
+  first: uint8 if ( len >= 1 ) {
     self.temp = self.first / 40;
     self.oid.push_back( self.temp );
     self.oidstring = "%d" % (self.temp);
@@ -153,21 +173,39 @@ public type ASN1Header = unit {
 
 public type ASN1Body = unit(head: ASN1Header) {
   switch ( head.tag.tpe ) {
+
     ### TODO - bail out if boolean length != 1
     ASN1Type::BOOLEAN -> bool_value: uint8;
-    ASN1Type::INTEGER, ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len &convert=$$.to_int(spicy::ByteOrder::Big);
+
+    ASN1Type::INTEGER,
+
+    ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len
+                                             &convert=$$.to_int(spicy::ByteOrder::Big);
     ASN1Type::NULLVAL -> : void {
       if (head.len.len != 0) {
         throw "ASN1Type::NULLVAL detected with non-zero length";
       }
     }
+
     ASN1Type::BITSTRING -> bitstring: ASN1BitString(head.len.len, head.tag.data.constructed);
+
     ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
+
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
-    ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-    ### TODO - come back to this, need to examine viability of using recursive submessages as intended by the ASN.1 spec
+
+    ASN1Type::PrintableString,
+    ASN1Type::GeneralizedTime,
+    ASN1Type::UTCTime,
+    ASN1Type::UTF8String,
+    ASN1Type::BMPString,
+    ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
+
+    ### TODO - come back to this, need to examine viability of using recursive submessages
+    #          as intended by the ASN.1 spec
     ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &size=head.len.len;
-    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages_void_placeholder: void;
+    ASN1Type::SEQUENCE,
+    ASN1Type::SET -> submessages_void_placeholder: void;
+
     * -> : bytes &size=head.len.len {
       throw "Unsupported ASN1Body type";
     }

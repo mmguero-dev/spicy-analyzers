@@ -72,9 +72,15 @@ public type ResultCode = enum {
 };
 
 public type Result = unit {
-  code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value)) &default=ResultCode::NOT_SET;
-  matchedDN: asn1::ASN1Message &convert=$$.body.octetstring.value &default=b"";
-  diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring.value &default=b"";
+
+  code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value))
+                          &default=ResultCode::NOT_SET;
+
+  matchedDN: asn1::ASN1Message &convert=$$.body.octetstring.value
+                               &default=b"";
+
+  diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring.value
+                                       &default=b"";
 
   # TODO: implement referral
   # https://tools.ietf.org/html/rfc4511#section-4.1.10

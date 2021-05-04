@@ -78,7 +78,8 @@ type ASN1BitString = unit(len: uint64, constructed: uint8) {
   unused_bits: uint8;
   value_bits: bytes &size=(len - 1);
 
-  # TODO - constructed form: we need >> and << for bytes before we can implement complex bitstrings. I don't think that is here yet.
+  # TODO - constructed form: we need >> and << for bytes before we can
+  # implement complex bitstrings. I don't think that is here yet.
 };
 
 type ASN1OctetString = unit(len: uint64, constructed: uint8) {
@@ -164,7 +165,7 @@ public type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
     ASN1Type::PrintableString, ASN1Type::GeneralizedTime, ASN1Type::UTCTime, ASN1Type::UTF8String, ASN1Type::BMPString, ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-    ### TODO: come back to this, need to examine viability of using recursive submessages as intended by the ASN.1 spec
+    ### TODO - come back to this, need to examine viability of using recursive submessages as intended by the ASN.1 spec
     ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &size=head.len.len;
     ASN1Type::SEQUENCE, ASN1Type::SET -> submessages_void_placeholder: void;
     * -> : bytes &size=head.len.len {

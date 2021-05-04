@@ -26,8 +26,14 @@ export {
     # Result(s)
     result: vector of ldap::ResultCode &log &optional;
 
-    # Object name
-    object: string &log &optional;
+    # result matched DN(s)
+    matchedDN: vector of string &log &optional;
+
+    # result diagnostic message(s)
+    diagnosticMessage: vector of string &log &optional;
+
+    # object(s) (eg., search strings, some other arguments of whatever operations)
+    object: vector of string &log &optional;
 
     # The analyzer ID used for the analyzer instance attached
     # to each connection.  It is not used for logging since it's a
@@ -44,7 +50,10 @@ export {
                               is_orig: bool,
                               message_id: int,
                               opcode: ldap::ProtocolOpcode,
-                              result: ldap::ResultCode);
+                              result: ldap::ResultCode,
+                              matchedDN: string,
+                              diagnosticMessage: string,
+                              object: string);
 
 }
 
@@ -105,7 +114,10 @@ event ldap::message(c: connection,
                     is_orig: bool,
                     message_id: int,
                     opcode: ldap::ProtocolOpcode,
-                    result: ldap::ResultCode) {
+                    result: ldap::ResultCode,
+                    matchedDN: string,
+                    diagnosticMessage: string,
+                    object: string) {
 
   set_session(c, message_id);
 
@@ -117,6 +129,24 @@ event ldap::message(c: connection,
     if ( ! c$ldap_messages[message_id]?$result )
       c$ldap_messages[message_id]$result = vector();
     c$ldap_messages[message_id]$result += result;
+  }
+
+  if ( matchedDN != "" ) {
+    if ( ! c$ldap_messages[message_id]?$matchedDN )
+      c$ldap_messages[message_id]$matchedDN = vector();
+    c$ldap_messages[message_id]$matchedDN += matchedDN;
+  }
+
+  if ( diagnosticMessage != "" ) {
+    if ( ! c$ldap_messages[message_id]?$diagnosticMessage )
+      c$ldap_messages[message_id]$diagnosticMessage = vector();
+    c$ldap_messages[message_id]$diagnosticMessage += diagnosticMessage;
+  }
+
+  if ( object != "" ) {
+    if ( ! c$ldap_messages[message_id]?$object )
+      c$ldap_messages[message_id]$object = vector();
+    c$ldap_messages[message_id]$object += object;
   }
 
   if (opcode in OPCODES_FINISHED) {

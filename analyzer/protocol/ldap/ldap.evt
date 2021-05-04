@@ -11,4 +11,11 @@ protocol analyzer spicy::ldap_tcp over TCP:
 import ldap;
 import ldap_zeek;
 
-on ldap::Message -> event ldap::message($conn, $is_orig, self.body.messageID, self.body.opcode, self.body.result);
+on ldap::Message -> event ldap::message($conn,
+                                        $is_orig,
+                                        self.body.messageID,
+                                        self.body.opcode,
+                                        self.body.result.code,
+                                        self.body.result.matchedDN,
+                                        self.body.result.diagnosticMessage,
+                                        self.body.obj);

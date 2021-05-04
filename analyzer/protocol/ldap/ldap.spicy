@@ -72,9 +72,9 @@ public type ResultCode = enum {
 };
 
 public type Result = unit {
-  code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value));
-  matchedDN: asn1::ASN1Message &convert=$$.body.octetstring;
-  diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring;
+  code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value)) &default=ResultCode::NOT_SET;
+  matchedDN: asn1::ASN1Message &convert=$$.body.octetstring.value &default=b"";
+  diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring.value &default=b"";
 
   # TODO: implement referral
   # https://tools.ietf.org/html/rfc4511#section-4.1.10
@@ -109,7 +109,9 @@ public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
   sequence: asn1::ASN1MessageHeadless(head);
   messageID: asn1::ASN1Message &convert=$$.body.num_value;
   var opcode: ProtocolOpcode;
-  var result: ResultCode = ResultCode::NOT_SET;
+  var unsetResultDefault: Result;
+  var result: Result& = self.unsetResultDefault;
+  var obj: bytes = b"";
   operation: asn1::ASN1Message {
     if (self.operation.head.tag.class == asn1::ASN1Class::APPLICATION) {
       self.opcode = cast<ProtocolOpcode>(self.operation.head.tag.data.num);
@@ -175,6 +177,7 @@ type BindRequest = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
+    message.obj = self.name.value;
     print "BindRequest", message.messageID, |self.data|, self;
   }
 };
@@ -188,7 +191,7 @@ type BindResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    message.result = self.result;
     print "BindResponse", message.messageID, |self.data|, self;
   }
 };
@@ -228,7 +231,7 @@ type SearchResultDone = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "SearchResultDone", message.messageID, |self.data|, self;
   }
 };
@@ -249,7 +252,7 @@ type ModifyResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "ModifyResponse", message.messageID, |self.data|, self;
   }
 };
@@ -270,7 +273,7 @@ type AddResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "AddResponse", message.messageID, |self.data|, self;
   }
 };
@@ -291,7 +294,7 @@ type DelResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "DelResponse", message.messageID, |self.data|, self;
   }
 };
@@ -312,7 +315,7 @@ type ModDNResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "ModDNResponse", message.messageID, |self.data|, self;
   }
 };
@@ -333,7 +336,7 @@ type CompareResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "CompareResponse", message.messageID, |self.data|, self;
   }
 };
@@ -373,7 +376,7 @@ type ExtendedResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    message.result = self.result.code;
+    # message.result = self.result;
     print "ExtendedResponse", message.messageID, |self.data|, self;
   }
 };

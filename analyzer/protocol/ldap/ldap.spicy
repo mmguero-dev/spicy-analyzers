@@ -224,9 +224,11 @@ type SearchResultEntry = unit(inout message: MessageBody) {
 };
 
 type SearchResultDone = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "SearchResultDone", message.messageID, |self.data|, self;
   }
 };
@@ -243,9 +245,11 @@ type ModifyRequest = unit(inout message: MessageBody) {
 };
 
 type ModifyResponse = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "ModifyResponse", message.messageID, |self.data|, self;
   }
 };
@@ -262,9 +266,11 @@ type AddRequest = unit(inout message: MessageBody) {
 };
 
 type AddResponse = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "AddResponse", message.messageID, |self.data|, self;
   }
 };
@@ -281,9 +287,11 @@ type DelRequest = unit(inout message: MessageBody) {
 };
 
 type DelResponse = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "DelResponse", message.messageID, |self.data|, self;
   }
 };
@@ -300,9 +308,11 @@ type ModDNRequest = unit(inout message: MessageBody) {
 };
 
 type ModDNResponse = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "ModDNResponse", message.messageID, |self.data|, self;
   }
 };
@@ -319,9 +329,11 @@ type CompareRequest = unit(inout message: MessageBody) {
 };
 
 type CompareResponse = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "CompareResponse", message.messageID, |self.data|, self;
   }
 };
@@ -357,9 +369,11 @@ type ExtendedRequest = unit(inout message: MessageBody) {
 };
 
 type ExtendedResponse = unit(inout message: MessageBody) {
+  result: Result;
 
   data: bytes &eod;
   on %done {
+    message.result = self.result.code;
     print "ExtendedResponse", message.messageID, |self.data|, self;
   }
 };

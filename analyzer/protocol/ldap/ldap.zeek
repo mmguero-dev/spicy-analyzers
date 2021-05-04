@@ -26,6 +26,9 @@ export {
     # Result(s)
     result: vector of ldap::ResultCode &log &optional;
 
+    # Object name
+    object: string &log &optional;
+
     # The analyzer ID used for the analyzer instance attached
     # to each connection.  It is not used for logging since it's a
     # meaningless arbitrary number.

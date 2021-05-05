@@ -4,6 +4,7 @@ import asn1;
 
 # https://tools.ietf.org/html/rfc4511
 
+#- Operation opcode ----------------------------------------------------------
 public type ProtocolOpcode = enum {
   BIND_REQUEST = 0,
   BIND_RESPONSE = 1,
@@ -28,6 +29,7 @@ public type ProtocolOpcode = enum {
   INTERMEDIATE_RESPONSE = 25
 };
 
+#- Result code ---------------------------------------------------------------
 public type ResultCode = enum {
   SUCCESS = 0,
   OPERATIONS_ERROR = 1,
@@ -71,6 +73,7 @@ public type ResultCode = enum {
   NOT_SET = 255
 };
 
+#-----------------------------------------------------------------------------
 public type Result = unit {
 
   code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value))
@@ -82,11 +85,12 @@ public type Result = unit {
   diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring.value
                                        &default=b"";
 
-  # TODO: implement referral
+  # TODO: parse referral
   # https://tools.ietf.org/html/rfc4511#section-4.1.10
   # referral: bytes &eod if (self.code == ResultCode::REFERRAL);
 };
 
+#-----------------------------------------------------------------------------
 public type Messages = unit {
   : Message[];
 };
@@ -152,6 +156,7 @@ public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
   }
 } &size=bodyLen;
 
+#-----------------------------------------------------------------------------
 # Bind Operation
 # https://tools.ietf.org/html/rfc4511#section-4.2
 
@@ -164,7 +169,7 @@ type BindAuthType = enum {
 type SaslCredentials = unit {
   mechanism: asn1::ASN1Message &convert=$$.body.octetstring;
 
-  # TODO: parse this SASL credentials
+  # TODO: parse SASL credentials
   _creds: bytes &eod;
   creds: asn1::ASN1Message &optional &parse-from=self._creds if ( |self._creds| > 0 );
 };
@@ -191,7 +196,7 @@ type BindRequest = unit(inout message: MessageBody) {
 type BindResponse = unit(inout message: MessageBody) {
   result: Result;
 
-  # TODO: parse this SASL credentials
+  # TODO: parse SASL credentials (or use SaslCredentials above if it's the same thing?)
   # _serverSaslCreds: bytes &eod;
   # serverSaslCreds: asn1::ASN1Message &optional &parse-from=self._serverSaslCreds if ( |self._serverSaslCreds| > 0 );
 
@@ -202,6 +207,7 @@ type BindResponse = unit(inout message: MessageBody) {
   }
 };
 
+#-----------------------------------------------------------------------------
 # Unbind Operation
 # https://tools.ietf.org/html/rfc4511#section-4.3
 
@@ -213,21 +219,54 @@ type UnbindRequest = unit(inout message: MessageBody) {
   }
 };
 
+#-----------------------------------------------------------------------------
 # Search Operation
 # https://tools.ietf.org/html/rfc4511#section-4.5
 
+type SearchScope = enum {
+  SEARCH_BASE = 0,
+  SEARCH_SINGLE = 1,
+  SEARCH_TREE = 2,
+  SEARCH_NOT_SET = 255
+};
+
+type SearchDerefAlias = enum {
+  DEREF_NEVER = 0,
+  DEREF_IN_SEARCHING = 1,
+  DEREF_FINDING_BASE = 2,
+  DEREF_ALWAYS = 3,
+  DEREF_NOT_SET = 255
+};
+
 type SearchRequest = unit(inout message: MessageBody) {
+  baseObject: asn1::ASN1Message &convert=$$.body.octetstring;
+  scope: asn1::ASN1Message &convert=cast<SearchScope>(cast<uint8>($$.body.num_value))
+                           &default=SearchScope::SEARCH_NOT_SET;
+  deref: asn1::ASN1Message &convert=cast<SearchDerefAlias>(cast<uint8>($$.body.num_value))
+                           &default=SearchDerefAlias::DEREF_NOT_SET;
+  sizeLimit: asn1::ASN1Message &convert=$$.body.num_value;
+  timeLimit: asn1::ASN1Message &convert=$$.body.num_value;
+  typesOnly: asn1::ASN1Message &convert=cast<bool>($$.body.bool_value);
+
+  # TODO: parse filter and attributes
+  # filter          Filter,
+  # attributes      AttributeSelection
 
   data: bytes &eod;
   on %done {
+    message.obj = self.baseObject.value;
     print "SearchRequest", message.messageID, |self.data|, self;
   }
 };
 
 type SearchResultEntry = unit(inout message: MessageBody) {
+  objectName: asn1::ASN1Message &convert=$$.body.octetstring;
+
+  # TODO: parse attributes PartialAttributeList
 
   data: bytes &eod;
   on %done {
+    message.obj = self.objectName.value;
     print "SearchResultEntry", message.messageID, |self.data|, self;
   }
 };
@@ -237,18 +276,34 @@ type SearchResultDone = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "SearchResultDone", message.messageID, |self.data|, self;
   }
 };
 
+type SearchResultReference = unit(inout message: MessageBody) {
+
+  # TODO: SearchResultReference
+  # The SearchResultReference is of the same data type as the Referral.
+
+  data: bytes &eod;
+  on %done {
+    print "SearchResultReference", message.messageID, |self.data|, self;
+  }
+};
+
+#-----------------------------------------------------------------------------
 # Modify Operation
 # https://tools.ietf.org/html/rfc4511#section-4.6
 
 type ModifyRequest = unit(inout message: MessageBody) {
+  objectName: asn1::ASN1Message &convert=$$.body.octetstring;
+
+  # TODO: parse changes
 
   data: bytes &eod;
   on %done {
+    message.obj = self.objectName.value;
     print "ModifyRequest", message.messageID, |self.data|, self;
   }
 };
@@ -258,15 +313,18 @@ type ModifyResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "ModifyResponse", message.messageID, |self.data|, self;
   }
 };
 
+#-----------------------------------------------------------------------------
 # Add Operation
 # https://tools.ietf.org/html/rfc4511#section-4.7
 
 type AddRequest = unit(inout message: MessageBody) {
+
+  # TODO: add request sequence
 
   data: bytes &eod;
   on %done {
@@ -279,18 +337,21 @@ type AddResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "AddResponse", message.messageID, |self.data|, self;
   }
 };
 
+#-----------------------------------------------------------------------------
 # Delete Operation
 # https://tools.ietf.org/html/rfc4511#section-4.8
 
 type DelRequest = unit(inout message: MessageBody) {
+  objectName: asn1::ASN1Message &convert=$$.body.octetstring;
 
   data: bytes &eod;
   on %done {
+    message.obj = self.objectName.value;
     print "DelRequest", message.messageID, |self.data|, self;
   }
 };
@@ -300,15 +361,18 @@ type DelResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "DelResponse", message.messageID, |self.data|, self;
   }
 };
 
+#-----------------------------------------------------------------------------
 # Modify DN Operation
 # https://tools.ietf.org/html/rfc4511#section-4.8
 
 type ModDNRequest = unit(inout message: MessageBody) {
+
+  # TODO: parse mod DN request sequence
 
   data: bytes &eod;
   on %done {
@@ -321,15 +385,18 @@ type ModDNResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "ModDNResponse", message.messageID, |self.data|, self;
   }
 };
 
+#-----------------------------------------------------------------------------
 # Compare Operation
 # https://tools.ietf.org/html/rfc4511#section-4.10
 
 type CompareRequest = unit(inout message: MessageBody) {
+
+  # TODO: parse compare request entry/ava sequence
 
   data: bytes &eod;
   on %done {
@@ -342,34 +409,32 @@ type CompareResponse = unit(inout message: MessageBody) {
 
   data: bytes &eod;
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "CompareResponse", message.messageID, |self.data|, self;
   }
 };
 
+#-----------------------------------------------------------------------------
 # Abandon Operation
 # https://tools.ietf.org/html/rfc4511#section-4.11
 
 type AbandonRequest = unit(inout message: MessageBody) {
+  messageID: asn1::ASN1Message &convert=$$.body.num_value;
 
   data: bytes &eod;
   on %done {
+    # TODO: can't do string -> bytes
+    # message.obj = "%d" % (self.messageID);
     print "AbandonRequest", message.messageID, |self.data|, self;
   }
 };
 
-type SearchResultReference = unit(inout message: MessageBody) {
-
-  data: bytes &eod;
-  on %done {
-    print "SearchResultReference", message.messageID, |self.data|, self;
-  }
-};
-
+#-----------------------------------------------------------------------------
 # Extended Operation
 # https://tools.ietf.org/html/rfc4511#section-4.12
 
 type ExtendedRequest = unit(inout message: MessageBody) {
+  # TODO: parse ExtendedRequest sequence
 
   data: bytes &eod;
   on %done {
@@ -378,7 +443,7 @@ type ExtendedRequest = unit(inout message: MessageBody) {
 };
 
 type ExtendedResponse = unit(inout message: MessageBody) {
-  result: Result;
+  # TODO: parse ExtendedRequest sequence
 
   data: bytes &eod;
   on %done {
@@ -387,10 +452,12 @@ type ExtendedResponse = unit(inout message: MessageBody) {
   }
 };
 
+#-----------------------------------------------------------------------------
 # IntermediateResponse Message
 # https://tools.ietf.org/html/rfc4511#section-4.13
 
 type IntermediateResponse = unit(inout message: MessageBody) {
+  # TODO: parse IntermediateResponse sequence
 
   data: bytes &eod;
   on %done {

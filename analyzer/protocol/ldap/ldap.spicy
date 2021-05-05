@@ -239,6 +239,69 @@ public type SearchDerefAlias = enum {
   DEREF_NOT_SET = 255
 };
 
+type FilterType = enum {
+  FILTER_AND = 0,
+  FILTER_OR = 1,
+  FILTER_NOT = 2,
+  FILTER_EQ = 3,
+  FILTER_SUBSTR = 4,
+  FILTER_GE = 5,
+  FILTER_LE = 6,
+  FILTER_PRESENT = 7,
+  FILTER_APPROX = 8,
+  FILTER_EXT = 9,
+  FILTER_INVALID = 254,
+  FILTER_NOT_SET = 255
+};
+
+type AttributeSelection = unit() {
+  # TODO: parse AttributeSelection as per
+  # https://tools.ietf.org/html/rfc4511#section-4.5.1
+  # and decide how deep that should be fleshed out.
+  attributes : asn1::ASN1Message;
+};
+
+type AttributeValueAssertion = unit() {
+  head: asn1::ASN1Header;
+  sequence: asn1::ASN1MessageHeadless(self.head)
+    if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
+  description: asn1::ASN1Message &convert=$$.body.octetstring
+    if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
+  value: asn1::ASN1Message &convert=$$.body.octetstring
+    if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
+};
+
+type SearchFilter = unit() {
+  var filterType: FilterType = FilterType::FILTER_NOT_SET;
+  filter : asn1::ASN1Message {
+    if ((self.filter.head.tag.tpe == asn1::ASN1Type::ObjectDescriptor) &&
+        (self.filter.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC)) {
+      self.filterType = cast<FilterType>(self.filter.head.tag.data.num);
+    } else {
+      self.filterType = FilterType::FILTER_INVALID;
+    }
+  }
+
+  # TODO: parse search request filter as per
+  #    https://tools.ietf.org/html/rfc4511#section-4.5.1.7
+  # This gets pretty involved... I wonder about the best way
+  # to represent this (beyond just descending the object tree)
+
+  switch ( self.filterType ) {
+    # FilterType::FILTER_AND -> FILTER_AND: void;
+    # FilterType::FILTER_OR -> FILTER_OR: void;
+    # FilterType::FILTER_SUBSTR -> FILTER_SUBSTR: void;
+    # FilterType::FILTER_EXT -> FILTER_EXT: void;
+    FilterType::FILTER_NOT -> FILTER_NOT: SearchFilter();
+    FilterType::FILTER_EQ -> FILTER_EQ: AttributeValueAssertion();
+    FilterType::FILTER_GE -> FILTER_GE: AttributeValueAssertion();
+    FilterType::FILTER_LE -> FILTER_LE: AttributeValueAssertion();
+    FilterType::FILTER_PRESENT -> FILTER_PRESENT: asn1::ASN1OctetString(self.filter.head.len.len, 0);
+    FilterType::FILTER_APPROX -> FILTER_APPROX: AttributeValueAssertion();
+    * -> unknownFilter: bytes &size=self.filter.head.len.len;
+  };
+};
+
 type SearchRequest = unit(inout message: MessageBody) {
   baseObject: asn1::ASN1Message &convert=$$.body.octetstring;
   scope: asn1::ASN1Message &convert=cast<SearchScope>(cast<uint8>($$.body.num_value))
@@ -248,10 +311,8 @@ type SearchRequest = unit(inout message: MessageBody) {
   sizeLimit: asn1::ASN1Message &convert=$$.body.num_value;
   timeLimit: asn1::ASN1Message &convert=$$.body.num_value;
   typesOnly: asn1::ASN1Message &convert=cast<bool>($$.body.bool_value);
-
-  # TODO: parse filter and attributes
-  # filter          Filter,
-  # attributes      AttributeSelection
+  filter: SearchFilter;
+  attributes: AttributeSelection;
 
   data: bytes &eod;
   on %done {

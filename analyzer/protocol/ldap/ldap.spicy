@@ -26,7 +26,8 @@ public type ProtocolOpcode = enum {
   SEARCH_RESULT_REFERENCE = 19,
   EXTENDED_REQUEST = 23,
   EXTENDED_RESPONSE = 24,
-  INTERMEDIATE_RESPONSE = 25
+  INTERMEDIATE_RESPONSE = 25,
+  NOT_SET = 255
 };
 
 #- Result code ---------------------------------------------------------------
@@ -223,14 +224,14 @@ type UnbindRequest = unit(inout message: MessageBody) {
 # Search Operation
 # https://tools.ietf.org/html/rfc4511#section-4.5
 
-type SearchScope = enum {
+public type SearchScope = enum {
   SEARCH_BASE = 0,
   SEARCH_SINGLE = 1,
   SEARCH_TREE = 2,
   SEARCH_NOT_SET = 255
 };
 
-type SearchDerefAlias = enum {
+public type SearchDerefAlias = enum {
   DEREF_NEVER = 0,
   DEREF_IN_SEARCHING = 1,
   DEREF_FINDING_BASE = 2,

@@ -12,10 +12,18 @@ import ldap;
 import ldap_zeek;
 
 on ldap::Message -> event ldap::message($conn,
-                                        $is_orig,
                                         self.body.messageID,
                                         self.body.opcode,
                                         self.body.result.code,
                                         self.body.result.matchedDN,
                                         self.body.result.diagnosticMessage,
                                         self.body.obj);
+
+on ldap::SearchRequest -> event ldap::searchreq($conn,
+                                                message.messageID,
+                                                self.baseObject.value,
+                                                self.scope,
+                                                self.deref,
+                                                self.sizeLimit,
+                                                self.timeLimit,
+                                                self.typesOnly);

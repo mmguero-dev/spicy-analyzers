@@ -24,14 +24,11 @@ export {
     # Operation(s)
     opcode: set[ldap::ProtocolOpcode] &log &optional;
 
-    # Result(s)
+    # Result code(s)
     result: set[ldap::ResultCode] &log &optional;
 
-    # result matched DN(s)
-    matchedDN: vector of string &log &optional;
-
     # result diagnostic message(s)
-    diagnosticMessage: vector of string &log &optional;
+    diagnostic_message: vector of string &log &optional;
 
     # object(s) (eg., search strings, some other arguments of whatever operations)
     object: vector of string &log &optional;
@@ -64,10 +61,16 @@ export {
     deref: set[ldap::SearchDerefAlias] &log &optional;
 
     # base search objects
-    baseObject: vector of string &log &optional;
+    base_object: vector of string &log &optional;
 
-    # Result(s)
+    # number of results returned
+    result_count: count &log &optional;
+
+    # Result code (s)
     result: set[ldap::ResultCode] &log &optional;
+
+    # result diagnostic message(s)
+    diagnostic_message: vector of string &log &optional;
 
     # The analyzer ID used for the analyzer instance attached
     # to each connection.  It is not used for logging since it's a
@@ -85,8 +88,8 @@ export {
                               message_id: int,
                               opcode: ldap::ProtocolOpcode,
                               result: ldap::ResultCode,
-                              matchedDN: string,
-                              diagnosticMessage: string,
+                              matched_dn: string,
+                              diagnostic_message: string,
                               object: string);
 
 }
@@ -138,6 +141,7 @@ function set_session(c: connection, message_id: int, opcode: ldap::ProtocolOpcod
                                    $uid=c$uid,
                                    $id=c$id,
                                    $message_id=message_id,
+                                   $result_count=0,
                                    $analyzer_id=aid];
 
   } else if ((opcode !in OPCODES_SEARCH) && (message_id !in c$ldap_searches)) {
@@ -170,8 +174,8 @@ event ldap::message(c: connection,
                     message_id: int,
                     opcode: ldap::ProtocolOpcode,
                     result: ldap::ResultCode,
-                    matchedDN: string,
-                    diagnosticMessage: string,
+                    matched_dn: string,
+                    diagnostic_message: string,
                     object: string) {
 
   if (opcode == ldap::ProtocolOpcode_SEARCH_RESULT_DONE) {
@@ -181,6 +185,12 @@ event ldap::message(c: connection,
       if ( ! c$ldap_searches[message_id]?$result )
         c$ldap_searches[message_id]$result = set();
       add c$ldap_searches[message_id]$result[result];
+    }
+
+    if ( diagnostic_message != "" ) {
+      if ( ! c$ldap_searches[message_id]?$diagnostic_message )
+        c$ldap_searches[message_id]$diagnostic_message = vector();
+      c$ldap_searches[message_id]$diagnostic_message += diagnostic_message;
     }
 
     Log::write(ldap::LDAP_SEARCH_LOG, c$ldap_searches[message_id]);
@@ -199,16 +209,10 @@ event ldap::message(c: connection,
       add c$ldap_messages[message_id]$result[result];
     }
 
-    if ( matchedDN != "" ) {
-      if ( ! c$ldap_messages[message_id]?$matchedDN )
-        c$ldap_messages[message_id]$matchedDN = vector();
-      c$ldap_messages[message_id]$matchedDN += matchedDN;
-    }
-
-    if ( diagnosticMessage != "" ) {
-      if ( ! c$ldap_messages[message_id]?$diagnosticMessage )
-        c$ldap_messages[message_id]$diagnosticMessage = vector();
-      c$ldap_messages[message_id]$diagnosticMessage += diagnosticMessage;
+    if ( diagnostic_message != "" ) {
+      if ( ! c$ldap_messages[message_id]?$diagnostic_message )
+        c$ldap_messages[message_id]$diagnostic_message = vector();
+      c$ldap_messages[message_id]$diagnostic_message += diagnostic_message;
     }
 
     if ( object != "" ) {
@@ -228,12 +232,12 @@ event ldap::message(c: connection,
 #############################################################################
 event ldap::searchreq(c: connection,
                       message_id: int,
-                      baseObject: string,
+                      base_object: string,
                       scope: ldap::SearchScope,
                       deref: ldap::SearchDerefAlias,
-                      sizeLimit: int,
-                      timeLimit: int,
-                      typesOnly: bool) {
+                      size_limit: int,
+                      time_limit: int,
+                      types_only: bool) {
 
   set_session(c, message_id, ldap::ProtocolOpcode_SEARCH_REQUEST);
 
@@ -249,10 +253,10 @@ event ldap::searchreq(c: connection,
     add c$ldap_searches[message_id]$deref[deref];
   }
 
-  if ( baseObject != "" ) {
-    if ( ! c$ldap_searches[message_id]?$baseObject )
-      c$ldap_searches[message_id]$baseObject = vector();
-    c$ldap_searches[message_id]$baseObject += baseObject;
+  if ( base_object != "" ) {
+    if ( ! c$ldap_searches[message_id]?$base_object )
+      c$ldap_searches[message_id]$base_object = vector();
+    c$ldap_searches[message_id]$base_object += base_object;
   }
 
 }

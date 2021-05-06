@@ -59,7 +59,8 @@ type LengthType = unit {
     }
     1 -> length_parse: bytes &size=self.data.num
                              &convert=$$.to_uint(spicy::ByteOrder::Network) {
-      self.len = self.length_parse; self.tag_len = self.data.num + 1;
+      self.len = self.length_parse;
+      self.tag_len = self.data.num + 1;
     }
   };
 };
@@ -68,6 +69,7 @@ type ASN1Tag = unit {
   var tpe: ASN1Type;
   var len: uint8 = 1;
   var class: ASN1Class;
+  var constructed: bool;
 
   data : bitfield(8) {
     num: 0..4;
@@ -78,10 +80,11 @@ type ASN1Tag = unit {
   on %done {
     self.tpe = ASN1Type(self.data.num);
     self.class = ASN1Class(self.data.class);
+    self.constructed = cast<bool>(self.data.constructed);
   }
 };
 
-type ASN1BitString = unit(len: uint64, constructed: uint8) {
+type ASN1BitString = unit(len: uint64, constructed: bool) {
   unused_bits: uint8;
   value_bits: bytes &size=(len - 1);
 
@@ -89,7 +92,7 @@ type ASN1BitString = unit(len: uint64, constructed: uint8) {
   # `bytes` needs << and >> support before we can implement complex bitstrings
 };
 
-type ASN1OctetString = unit(len: uint64, constructed: uint8) {
+type ASN1OctetString = unit(len: uint64, constructed: bool) {
   var len: uint64;
   value: bytes &size = len;
 
@@ -102,7 +105,7 @@ type ASN1OctetString = unit(len: uint64, constructed: uint8) {
 
 type ASN1String = unit(tag: ASN1Tag, len: uint64) {
 
-  octetstring: ASN1OctetString(len, tag.data.constructed);
+  octetstring: ASN1OctetString(len, tag.constructed);
 
   switch ( tag.tpe ) {
 
@@ -195,9 +198,9 @@ public type ASN1Body = unit(head: ASN1Header, recursive: bool, depth: uint32) {
       }
     }
 
-    ASN1Type::BITSTRING -> bitstring: ASN1BitString(head.len.len, head.tag.data.constructed);
+    ASN1Type::BITSTRING -> bitstring: ASN1BitString(head.len.len, head.tag.constructed);
 
-    ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.data.constructed);
+    ASN1Type::OCTETSTRING -> octetstring: ASN1OctetString(head.len.len, head.tag.constructed);
 
     ASN1Type::OBJECTIDENTIFIER -> objectidentifier: ASN1ObjectIdentifier(head.len.len);
 
@@ -221,9 +224,9 @@ public type ASN1Body = unit(head: ASN1Header, recursive: bool, depth: uint32) {
       } else if (self?.num_value) {
         print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "NUMBER"), self.num_value;
       } else if (self?.bitstring) {
-        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "BITSTRING"), self.bitstring, head.tag.data.constructed;
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "BITSTRING"), self.bitstring, head.tag.constructed;
       } else if (self?.octetstring) {
-        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "OCTETSTRING"), self.octetstring, head.tag.data.constructed;
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "OCTETSTRING"), self.octetstring, head.tag.constructed;
       } else if (self?.objectidentifier) {
         print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "OBJECTIDENTIFIER"), self.objectidentifier;
       } else if (self?.asn1string) {
@@ -244,13 +247,15 @@ public type ASN1SubMessages = unit(msgLen: uint64, depth: uint32) {
 public type ASN1Message = unit(recursive: bool, depth: uint32) {
   head: ASN1Header;
   body: ASN1Body(self.head, recursive, depth) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
-  # TODO: non-universal (application) types
-  application_void_placeholder: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
+  var application_id: int32;
+  application_data: bytes &size=self.head.len.len if ( self.head.tag.class != ASN1Class::UNIVERSAL ) {
+    self.application_id = self.head.tag.data.num;
+  }
 
   on %done {
     if (DEBUG_PRINT == True) {
       if ( self.head.tag.class != ASN1Class::UNIVERSAL ) {
-        print "%.*s%s %s" % ((depth*2)+1, DEBUG_SPACES, self.head.tag.class, self.head.len.len), self.head;
+        print "%.*s%s %s %d %s" % ((depth*2)+1, DEBUG_SPACES, self.head.tag.class, self.application_id, self.head.tag.constructed, self.head.len.len), self.head;
       }
     }
   }
@@ -258,13 +263,15 @@ public type ASN1Message = unit(recursive: bool, depth: uint32) {
 
 public type ASN1MessageHeadless = unit(head: ASN1Header, recursive: bool, depth: uint32) {
   body: ASN1Body(head, recursive, depth) if ( head.tag.class == ASN1Class::UNIVERSAL );
-  # TODO: non-universal (application) types
-  application_void_placeholder: void if ( head.tag.class != ASN1Class::UNIVERSAL );
+  var application_id: int32;
+  application_data: bytes &size=head.len.len if ( head.tag.class != ASN1Class::UNIVERSAL ) {
+    self.application_id = head.tag.data.num;
+  }
 
   on %done {
     if (DEBUG_PRINT == True) {
       if ( head.tag.class != ASN1Class::UNIVERSAL ) {
-        print "%.*s%s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.len.len), head;
+        print "%.*s%s %s %d %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, self.application_id, head.tag.constructed, head.len.len), head;
       }
     }
   }

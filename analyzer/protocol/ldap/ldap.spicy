@@ -77,14 +77,14 @@ public type ResultCode = enum {
 #-----------------------------------------------------------------------------
 public type Result = unit {
 
-  code: asn1::ASN1Message &convert=cast<ResultCode>(cast<uint8>($$.body.num_value))
-                          &default=ResultCode::NOT_SET;
+  code: asn1::ASN1MessageBase &convert=cast<ResultCode>(cast<uint8>($$.msg.body.num_value))
+                              &default=ResultCode::NOT_SET;
 
-  matchedDN: asn1::ASN1Message &convert=$$.body.octetstring.value
-                               &default=b"";
+  matchedDN: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring.value
+                                   &default=b"";
 
-  diagnosticMessage: asn1::ASN1Message &convert=$$.body.octetstring.value
-                                       &default=b"";
+  diagnosticMessage: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring.value
+                                           &default=b"";
 
   # TODO: parse referral
   # https://tools.ietf.org/html/rfc4511#section-4.1.10
@@ -117,15 +117,17 @@ public type Message = unit {
 public type MessageBody = unit(head: asn1::ASN1Header, bodyLen: uint64) {
   %random-access;
 
-  sequence: asn1::ASN1MessageHeadless(head);
-  messageID: asn1::ASN1Message &convert=$$.body.num_value;
+  # TODO: rip everything out and do everything recursive the right way
+  sequence: asn1::ASN1MessageHeadless(head, False, 0);
+  messageID: asn1::ASN1MessageBase &convert=$$.msg.body.num_value;
   var opcode: ProtocolOpcode;
   var unsetResultDefault: Result;
+
   var result: Result& = self.unsetResultDefault;
   var obj: bytes = b"";
-  operation: asn1::ASN1Message {
-    if (self.operation.head.tag.class == asn1::ASN1Class::APPLICATION) {
-      self.opcode = cast<ProtocolOpcode>(self.operation.head.tag.data.num);
+  operation: asn1::ASN1MessageBase {
+    if (self.operation.msg.head.tag.class == asn1::ASN1Class::APPLICATION) {
+      self.opcode = cast<ProtocolOpcode>(self.operation.msg.head.tag.data.num);
     }
   }
   switch ( self.opcode ) {
@@ -168,23 +170,23 @@ type BindAuthType = enum {
 };
 
 type SaslCredentials = unit {
-  mechanism: asn1::ASN1Message &convert=$$.body.octetstring;
+  mechanism: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring;
 
   # TODO: parse SASL credentials
   _creds: bytes &eod;
-  creds: asn1::ASN1Message &optional &parse-from=self._creds if ( |self._creds| > 0 );
+  creds: asn1::ASN1MessageBase &optional &parse-from=self._creds if ( |self._creds| > 0 );
 };
 
 type BindRequest = unit(inout message: MessageBody) {
-  version: asn1::ASN1Message &convert=$$.body.num_value;
-  name: asn1::ASN1Message &convert=$$.body.octetstring;
+  version: asn1::ASN1MessageBase &convert=$$.msg.body.num_value;
+  name: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring;
   var authType: BindAuthType = BindAuthType::BIND_AUTH_INVALID;
-  authentication: asn1::ASN1Message {
-    if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
-      self.authType = cast<BindAuthType>(self.authentication.head.tag.data.num);
+  authentication: asn1::ASN1MessageBase {
+    if (self.authentication.msg.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
+      self.authType = cast<BindAuthType>(self.authentication.msg.head.tag.data.num);
     }
   }
-  simpleCreds: bytes &size=self.authentication.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
+  simpleCreds: bytes &size=self.authentication.msg.head.len.len if (self.authType == BindAuthType::BIND_AUTH_SIMPLE);
   saslCreds: SaslCredentials if (self.authType == BindAuthType::BIND_AUTH_SASL);
 
   data: bytes &eod;
@@ -199,7 +201,7 @@ type BindResponse = unit(inout message: MessageBody) {
 
   # TODO: parse SASL credentials (or use SaslCredentials above if it's the same thing?)
   # _serverSaslCreds: bytes &eod;
-  # serverSaslCreds: asn1::ASN1Message &optional &parse-from=self._serverSaslCreds if ( |self._serverSaslCreds| > 0 );
+  # serverSaslCreds: asn1::ASN1MessageBase &optional &parse-from=self._serverSaslCreds if ( |self._serverSaslCreds| > 0 );
 
   data: bytes &eod;
   on %done {
@@ -258,25 +260,25 @@ type AttributeSelection = unit() {
   # TODO: parse AttributeSelection as per
   # https://tools.ietf.org/html/rfc4511#section-4.5.1
   # and decide how deep that should be fleshed out.
-  attributes : asn1::ASN1Message;
+  attributes : asn1::ASN1MessageBase;
 };
 
 type AttributeValueAssertion = unit() {
   head: asn1::ASN1Header;
-  sequence: asn1::ASN1MessageHeadless(self.head)
+  sequence: asn1::ASN1MessageHeadless(self.head, False, 0)
     if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
-  description: asn1::ASN1Message &convert=$$.body.octetstring
+  description: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring
     if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
-  value: asn1::ASN1Message &convert=$$.body.octetstring
+  value: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring
     if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
 };
 
 type SearchFilter = unit() {
   var filterType: FilterType = FilterType::FILTER_NOT_SET;
-  filter : asn1::ASN1Message {
-    if ((self.filter.head.tag.tpe == asn1::ASN1Type::ObjectDescriptor) &&
-        (self.filter.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC)) {
-      self.filterType = cast<FilterType>(self.filter.head.tag.data.num);
+  filter : asn1::ASN1MessageBase {
+    if ((self.filter.msg.head.tag.tpe == asn1::ASN1Type::ObjectDescriptor) &&
+        (self.filter.msg.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC)) {
+      self.filterType = cast<FilterType>(self.filter.msg.head.tag.data.num);
     } else {
       self.filterType = FilterType::FILTER_INVALID;
     }
@@ -296,21 +298,21 @@ type SearchFilter = unit() {
     FilterType::FILTER_EQ -> FILTER_EQ: AttributeValueAssertion();
     FilterType::FILTER_GE -> FILTER_GE: AttributeValueAssertion();
     FilterType::FILTER_LE -> FILTER_LE: AttributeValueAssertion();
-    FilterType::FILTER_PRESENT -> FILTER_PRESENT: asn1::ASN1OctetString(self.filter.head.len.len, 0);
+    FilterType::FILTER_PRESENT -> FILTER_PRESENT: asn1::ASN1OctetString(self.filter.msg.head.len.len, 0);
     FilterType::FILTER_APPROX -> FILTER_APPROX: AttributeValueAssertion();
-    * -> unknownFilter: bytes &size=self.filter.head.len.len;
+    * -> unknownFilter: bytes &size=self.filter.msg.head.len.len;
   };
 };
 
 type SearchRequest = unit(inout message: MessageBody) {
-  baseObject: asn1::ASN1Message &convert=$$.body.octetstring;
-  scope: asn1::ASN1Message &convert=cast<SearchScope>(cast<uint8>($$.body.num_value))
+  baseObject: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring;
+  scope: asn1::ASN1MessageBase &convert=cast<SearchScope>(cast<uint8>($$.msg.body.num_value))
                            &default=SearchScope::SEARCH_NOT_SET;
-  deref: asn1::ASN1Message &convert=cast<SearchDerefAlias>(cast<uint8>($$.body.num_value))
+  deref: asn1::ASN1MessageBase &convert=cast<SearchDerefAlias>(cast<uint8>($$.msg.body.num_value))
                            &default=SearchDerefAlias::DEREF_NOT_SET;
-  sizeLimit: asn1::ASN1Message &convert=$$.body.num_value;
-  timeLimit: asn1::ASN1Message &convert=$$.body.num_value;
-  typesOnly: asn1::ASN1Message &convert=cast<bool>($$.body.bool_value);
+  sizeLimit: asn1::ASN1MessageBase &convert=$$.msg.body.num_value;
+  timeLimit: asn1::ASN1MessageBase &convert=$$.msg.body.num_value;
+  typesOnly: asn1::ASN1MessageBase &convert=cast<bool>($$.msg.body.bool_value);
   filter: SearchFilter;
   attributes: AttributeSelection;
 
@@ -322,7 +324,7 @@ type SearchRequest = unit(inout message: MessageBody) {
 };
 
 type SearchResultEntry = unit(inout message: MessageBody) {
-  objectName: asn1::ASN1Message &convert=$$.body.octetstring;
+  objectName: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring;
 
   # TODO: parse attributes PartialAttributeList
 
@@ -359,7 +361,7 @@ type SearchResultReference = unit(inout message: MessageBody) {
 # https://tools.ietf.org/html/rfc4511#section-4.6
 
 type ModifyRequest = unit(inout message: MessageBody) {
-  objectName: asn1::ASN1Message &convert=$$.body.octetstring;
+  objectName: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring;
 
   # TODO: parse changes
 
@@ -409,7 +411,7 @@ type AddResponse = unit(inout message: MessageBody) {
 # https://tools.ietf.org/html/rfc4511#section-4.8
 
 type DelRequest = unit(inout message: MessageBody) {
-  objectName: asn1::ASN1Message &convert=$$.body.octetstring;
+  objectName: asn1::ASN1MessageBase &convert=$$.msg.body.octetstring;
 
   data: bytes &eod;
   on %done {
@@ -481,7 +483,7 @@ type CompareResponse = unit(inout message: MessageBody) {
 # https://tools.ietf.org/html/rfc4511#section-4.11
 
 type AbandonRequest = unit(inout message: MessageBody) {
-  messageID: asn1::ASN1Message &convert=$$.body.num_value;
+  messageID: asn1::ASN1MessageBase &convert=$$.msg.body.num_value;
 
   data: bytes &eod;
   on %done {

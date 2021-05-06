@@ -2,6 +2,7 @@ module asn1;
 
 import spicy;
 
+#- ASN.1 data types ----------------------------------------------------------
 public type ASN1Type = enum {
   BOOLEAN = 1,
   INTEGER = 2,
@@ -33,6 +34,7 @@ public type ASN1Type = enum {
   BMPString = 30
 };
 
+#- ASN.1 data classes --------------------------------------------------------
 public type ASN1Class = enum {
   UNIVERSAL = 0,
   APPLICATION = 1,
@@ -83,8 +85,8 @@ type ASN1BitString = unit(len: uint64, constructed: uint8) {
   unused_bits: uint8;
   value_bits: bytes &size=(len - 1);
 
-  # TODO - constructed form: we need >> and << for bytes before we can
-  # implement complex bitstrings. I don't think that is here yet.
+  # TODO - constructed form
+  # `bytes` needs << and >> support before we can implement complex bitstrings
 };
 
 type ASN1OctetString = unit(len: uint64, constructed: uint8) {
@@ -171,16 +173,22 @@ public type ASN1Header = unit {
   }
 };
 
-public type ASN1Body = unit(head: ASN1Header) {
+const DEBUG_SPACES = "                                                       ";
+const DEBUG_PRINT = True;
+
+public type ASN1Body = unit(head: ASN1Header, recursive: bool, depth: uint32) {
   switch ( head.tag.tpe ) {
 
-    ### TODO - bail out if boolean length != 1
-    ASN1Type::BOOLEAN -> bool_value: uint8;
+    ASN1Type::BOOLEAN -> bool_value: uint8 {
+      if (head.len.len != 1) {
+        throw "ASN1Type::BOOLEAN detected with length != 1";
+      }
+    }
 
     ASN1Type::INTEGER,
-
     ASN1Type::ENUMERATED -> num_value: bytes &size=head.len.len
                                              &convert=$$.to_int(spicy::ByteOrder::Big);
+
     ASN1Type::NULLVAL -> : void {
       if (head.len.len != 0) {
         throw "ASN1Type::NULLVAL detected with non-zero length";
@@ -199,26 +207,57 @@ public type ASN1Body = unit(head: ASN1Header) {
     ASN1Type::UTF8String,
     ASN1Type::BMPString,
     ASN1Type::UniversalString -> asn1string: ASN1String(head.tag, head.len.len);
-
-    ### TODO - come back to this, need to examine viability of using recursive submessages
-    #          as intended by the ASN.1 spec
-    ###    ASN1Type::SEQUENCE, ASN1Type::SET -> submessages: ASN1Message[] &size=head.len.len;
-    ASN1Type::SEQUENCE,
-    ASN1Type::SET -> submessages_void_placeholder: void;
+    ASN1Type::SEQUENCE, ASN1Type::SET -> seq: ASN1SubMessages(head.len.len, depth+1) if (recursive);
 
     * -> : bytes &size=head.len.len {
       throw "Unsupported ASN1Body type";
     }
   };
+
+  on %done {
+    if (DEBUG_PRINT == True) {
+      if (self?.bool_value) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "BOOLEAN"), self.bool_value;
+      } else if (self?.num_value) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "NUMBER"), self.num_value;
+      } else if (self?.bitstring) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "BITSTRING"), self.bitstring, head.tag.data.constructed;
+      } else if (self?.octetstring) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "OCTETSTRING"), self.octetstring, head.tag.data.constructed;
+      } else if (self?.objectidentifier) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "OBJECTIDENTIFIER"), self.objectidentifier;
+      } else if (self?.asn1string) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "STRING"), self.asn1string;
+      } else if (self?.seq) {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe, "SEQUENCE|SET"), |self.seq.submessages|, head.len.len;
+      } else {
+        print "%.*s%s %s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.tag.tpe);
+      }
+    }
+  }
 };
 
-public type ASN1Message = unit {
+public type ASN1SubMessages = unit(msgLen: uint64, depth: uint32) {
+  submessages: ASN1Message(True, depth)[] &eod;
+} &size=msgLen;
+
+public type ASN1Message = unit(recursive: bool, depth: uint32) {
   head: ASN1Header;
-  body: ASN1Body(self.head) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
+  body: ASN1Body(self.head, recursive, depth) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
+  # TODO: non-universal (application) types
   application_void_placeholder: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
 };
 
-public type ASN1MessageHeadless = unit(head: ASN1Header) {
-  body: ASN1Body(head) if ( head.tag.class == ASN1Class::UNIVERSAL );
+public type ASN1MessageHeadless = unit(head: ASN1Header, recursive: bool, depth: uint32) {
+  body: ASN1Body(head, recursive, depth) if ( head.tag.class == ASN1Class::UNIVERSAL );
+  # TODO: non-universal (application) types
   application_void_placeholder: void if ( head.tag.class != ASN1Class::UNIVERSAL );
+};
+
+public type ASN1MessageBaseRecursive = unit {
+  msg : ASN1Message(True, 0);
+};
+
+public type ASN1MessageBase = unit {
+  msg : ASN1Message(False, 0);
 };

@@ -177,7 +177,7 @@ public type ASN1Header = unit {
 };
 
 const DEBUG_SPACES = "                                                       ";
-const DEBUG_PRINT = True;
+const DEBUG_PRINT = False;
 
 public type ASN1Body = unit(head: ASN1Header, recursive: bool, depth: uint32) {
   switch ( head.tag.tpe ) {
@@ -245,6 +245,7 @@ public type ASN1SubMessages = unit(msgLen: uint64, depth: uint32) {
 } &size=msgLen;
 
 public type ASN1Message = unit(recursive: bool, depth: uint32) {
+  var depth: uint32 = depth;
   head: ASN1Header;
   body: ASN1Body(self.head, recursive, depth) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
   var application_id: int32;
@@ -262,6 +263,7 @@ public type ASN1Message = unit(recursive: bool, depth: uint32) {
 };
 
 public type ASN1MessageHeadless = unit(head: ASN1Header, recursive: bool, depth: uint32) {
+  var depth: uint32 = depth;
   body: ASN1Body(head, recursive, depth) if ( head.tag.class == ASN1Class::UNIVERSAL );
   var application_id: int32;
   application_data: bytes &size=head.len.len if ( head.tag.class != ASN1Class::UNIVERSAL ) {

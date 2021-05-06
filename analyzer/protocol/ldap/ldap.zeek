@@ -257,10 +257,7 @@ event ldap::searchres(c: connection,
 
   set_session(c, message_id, ldap::ProtocolOpcode_SEARCH_RESULT_ENTRY);
 
-  if ( object_name != "" ) {
-    c$ldap_searches[message_id]$result_count += 1;
-  }
-
+  c$ldap_searches[message_id]$result_count += 1;
 }
 
 #############################################################################

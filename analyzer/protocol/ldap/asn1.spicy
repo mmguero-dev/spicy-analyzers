@@ -255,7 +255,7 @@ public type ASN1Message = unit(recursive: bool, depth: uint32) {
   on %done {
     if (DEBUG_PRINT == True) {
       if ( self.head.tag.class != ASN1Class::UNIVERSAL ) {
-        print "%.*s%s %s %d %s" % ((depth*2)+1, DEBUG_SPACES, self.head.tag.class, self.application_id, self.head.tag.constructed, self.head.len.len), self.head;
+        print "%.*s%s %d %s %d" % ((depth*2)+1, DEBUG_SPACES, self.head.tag.class, self.application_id, self.head.tag.constructed, self.head.len.len), self.head;
       }
     }
   }
@@ -271,7 +271,7 @@ public type ASN1MessageHeadless = unit(head: ASN1Header, recursive: bool, depth:
   on %done {
     if (DEBUG_PRINT == True) {
       if ( head.tag.class != ASN1Class::UNIVERSAL ) {
-        print "%.*s%s %s %d %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, self.application_id, head.tag.constructed, head.len.len), head;
+        print "%.*s%s %d %s %d" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, self.application_id, head.tag.constructed, head.len.len), head;
       }
     }
   }

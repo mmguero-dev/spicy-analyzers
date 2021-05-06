@@ -246,12 +246,28 @@ public type ASN1Message = unit(recursive: bool, depth: uint32) {
   body: ASN1Body(self.head, recursive, depth) if ( self.head.tag.class == ASN1Class::UNIVERSAL );
   # TODO: non-universal (application) types
   application_void_placeholder: void if ( self.head.tag.class != ASN1Class::UNIVERSAL );
+
+  on %done {
+    if (DEBUG_PRINT == True) {
+      if ( self.head.tag.class != ASN1Class::UNIVERSAL ) {
+        print "%.*s%s %s" % ((depth*2)+1, DEBUG_SPACES, self.head.tag.class, self.head.len.len);
+      }
+    }
+  }
 };
 
 public type ASN1MessageHeadless = unit(head: ASN1Header, recursive: bool, depth: uint32) {
   body: ASN1Body(head, recursive, depth) if ( head.tag.class == ASN1Class::UNIVERSAL );
   # TODO: non-universal (application) types
   application_void_placeholder: void if ( head.tag.class != ASN1Class::UNIVERSAL );
+
+  on %done {
+    if (DEBUG_PRINT == True) {
+      if ( head.tag.class != ASN1Class::UNIVERSAL ) {
+        print "%.*s%s %s" % ((depth*2)+1, DEBUG_SPACES, head.tag.class, head.len.len);
+      }
+    }
+  }
 };
 
 public type ASN1MessageBaseRecursive = unit {

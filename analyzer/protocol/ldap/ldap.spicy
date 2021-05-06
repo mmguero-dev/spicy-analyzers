@@ -83,7 +83,7 @@ public type Result = unit(depth: uint32) {
   diagnosticMessage: asn1::ASN1Message(True, depth) &convert=$$.body.octetstring.value
                                                     &default=b"";
 
-  # TODO: parse referral
+  # TODO: if we want to parse referral URIs in result
   # https://tools.ietf.org/html/rfc4511#section-4.1.10
 };
 
@@ -98,8 +98,8 @@ public type Message = unit {
   var applicationBytes: bytes;
   var unsetResultDefault: Result;
   var result: Result& = self.unsetResultDefault;
-  var obj: bytes = b"";
-  var arg: bytes = b"";
+  var obj: string = "";
+  var arg: string = "";
 
   seq: asn1::ASN1Message(True, 0) {
     if ((self.seq.head.tag.tpe == asn1::ASN1Type::SEQUENCE) &&
@@ -113,8 +113,8 @@ public type Message = unit {
         self.applicationBytes = self.seq.body.seq.submessages[1].application_data;
       }
     }
-    if ((! self.?messageID) ||
-        (! self.?opcode) ||
+    if ((! self?.messageID) ||
+        (! self?.opcode) ||
         (self.opcode == ProtocolOpcode::NOT_SET)) {
       throw "LDAP message is not ASN.1 sequence as described in RFC 4511";
     }
@@ -158,8 +158,7 @@ type BindAuthType = enum {
 
 type SaslCredentials = unit(depth: uint32) {
   mechanism: asn1::ASN1Message(True, depth) &convert=$$.body.octetstring.value;
-  # TODO: if we want to parse more out of this (optional) credentials string
-  # credentials: asn1::ASN1Message(True, depth) &convert=$$.body.octetstring.value;
+  # TODO: if we want to parse the (optional) credentials string
 };
 
 type BindRequest = unit(inout message: Message) {
@@ -171,10 +170,10 @@ type BindRequest = unit(inout message: Message) {
   var simpleCreds: bytes = b"";
 
   authentication: asn1::ASN1Message(True, self.depth) {
-    if (self.authentication.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC) {
-      self.authType = cast<BindAuthType>(self.authentication.head.tag.data.num);
+    if (self.authentication?.application_id) {
+      self.authType = cast<BindAuthType>(cast<uint8>(self.authentication.application_id));
     }
-    if ((! self.?authType) || (self.authType == BindAuthType::NOT_SET)) {
+    if ((! self?.authType) || (self.authType == BindAuthType::NOT_SET)) {
       throw "BindRequest is not ASN.1 sequence as described in RFC 4511";
     }
     if ((self.authType == BindAuthType::BIND_AUTH_SIMPLE) &&
@@ -185,11 +184,11 @@ type BindRequest = unit(inout message: Message) {
   saslCreds: SaslCredentials(self.depth+1) &parse-from=self.authentication.application_data if (self.authType == BindAuthType::BIND_AUTH_SASL);
 
   on %done {
-    message.obj = self.name;
+    message.obj = self.name.decode();
     if (|self.simpleCreds| > 0) {
-      message.arg = self.simpleCreds;
+      message.arg = self.simpleCreds.decode();
     } else if (self.authType == BindAuthType::BIND_AUTH_SASL) {
-      message.arg = self.saslCreds.mechanism;
+      message.arg = self.saslCreds.mechanism.decode();
     }
     print "BindRequest", message.messageID, self.version, self.name,
           self.authType, message.obj, message.arg;
@@ -229,7 +228,7 @@ public type SearchScope = enum {
   SEARCH_BASE = 0,
   SEARCH_SINGLE = 1,
   SEARCH_TREE = 2,
-  SEARCH_NOT_SET = 255
+  NOT_SET = 255
 };
 
 public type SearchDerefAlias = enum {
@@ -237,7 +236,7 @@ public type SearchDerefAlias = enum {
   DEREF_IN_SEARCHING = 1,
   DEREF_FINDING_BASE = 2,
   DEREF_ALWAYS = 3,
-  DEREF_NOT_SET = 255
+  NOT_SET = 255
 };
 
 type FilterType = enum {
@@ -252,79 +251,128 @@ type FilterType = enum {
   FILTER_APPROX = 8,
   FILTER_EXT = 9,
   FILTER_INVALID = 254,
-  FILTER_NOT_SET = 255
+  NOT_SET = 255
 };
 
-#type AttributeSelection = unit() {
-#  # TODO: parse AttributeSelection as per
-#  # https://tools.ietf.org/html/rfc4511#section-4.5.1
-#  # and decide how deep that should be fleshed out.
-#  # attributes : asn1::ASN1MessageBase;
-#};
-#
-#type AttributeValueAssertion = unit() {
-#  head: asn1::ASN1Header;
-#  sequence: asn1::ASN1MessageHeadless(self.head, False, 0)
-#    if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
-#  description: asn1::ASN1MessageBase &convert=$$.body.octetstring
-#    if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
-#  value: asn1::ASN1MessageBase &convert=$$.body.octetstring
-#    if (self.head.tag.tpe == asn1::ASN1Type::SEQUENCE);
-#};
-#
-#type SearchFilter = unit() {
-#  var filterType: FilterType = FilterType::FILTER_NOT_SET;
-#  filter : asn1::ASN1MessageBase {
-#    if ((self.filter.head.tag.tpe == asn1::ASN1Type::ObjectDescriptor) &&
-#        (self.filter.head.tag.class == asn1::ASN1Class::CONTEXT_SPECIFIC)) {
-#      self.filterType = cast<FilterType>(self.filter.head.tag.data.num);
-#    } else {
-#      self.filterType = FilterType::FILTER_INVALID;
-#    }
-#  }
-#
-#  # TODO: parse search request filter as per
-#  #    https://tools.ietf.org/html/rfc4511#section-4.5.1.7
-#  # This gets pretty involved... I wonder about the best way
-#  # to represent this (beyond just descending the object tree)
-#
-#  switch ( self.filterType ) {
-#    # FilterType::FILTER_AND -> FILTER_AND: void;
-#    # FilterType::FILTER_OR -> FILTER_OR: void;
-#    # FilterType::FILTER_SUBSTR -> FILTER_SUBSTR: void;
-#    # FilterType::FILTER_EXT -> FILTER_EXT: void;
-#    FilterType::FILTER_NOT -> FILTER_NOT: SearchFilter();
-#    FilterType::FILTER_EQ -> FILTER_EQ: AttributeValueAssertion();
-#    FilterType::FILTER_GE -> FILTER_GE: AttributeValueAssertion();
-#    FilterType::FILTER_LE -> FILTER_LE: AttributeValueAssertion();
-#    FilterType::FILTER_PRESENT -> FILTER_PRESENT: asn1::ASN1OctetString(self.filter.head.len.len, 0);
-#    FilterType::FILTER_APPROX -> FILTER_APPROX: AttributeValueAssertion();
-#    * -> unknownFilter: bytes &size=self.filter.head.len.len;
-#  };
-#};
+type AttributeSelection = unit(depth: uint32) {
+  var attributes: vector<bytes>;
+
+  # TODO: parse AttributeSelection as per
+  # https://tools.ietf.org/html/rfc4511#section-4.5.1
+  # and decide how deep that should be fleshed out.
+  seq: asn1::ASN1Message(True, depth) {
+    if ((self.seq.head.tag.tpe == asn1::ASN1Type::SEQUENCE) &&
+        (self.seq.body?.seq) &&
+        (|self.seq.body.seq.submessages| > 0)) {
+      for (i in self.seq.body.seq.submessages) {
+        if (i.body?.octetstring) {
+          self.attributes.push_back(i.body.octetstring.value);
+        }
+      }
+    }
+  }
+};
+
+type AttributeValueAssertion = unit(depth: uint32) {
+  var desc: bytes = b"";
+  var val: bytes = b"";
+
+  seq: asn1::ASN1Message(True, depth) {
+    if ((self.seq.head.tag.tpe == asn1::ASN1Type::SEQUENCE) &&
+        (self.seq.body?.seq) &&
+        (|self.seq.body.seq.submessages| >= 2)) {
+      if (self.seq.body.seq.submessages[0].body?.octetstring) {
+        self.desc = self.seq.body.seq.submessages[0].body.octetstring.value;
+      }
+      if (self.seq.body.seq.submessages[1].body?.octetstring) {
+        self.val = self.seq.body.seq.submessages[1].body.octetstring.value;
+      }
+    }
+  }
+
+};
+
+type SubstringFilter = unit(depth: uint32) {
+  var ftype: bytes = b"";
+  var substrings: asn1::ASN1Message;
+
+  seq: asn1::ASN1Message(True, depth) {
+    if ((self.seq.head.tag.tpe == asn1::ASN1Type::SEQUENCE) &&
+        (self.seq.body?.seq) &&
+        (|self.seq.body.seq.submessages| >= 2)) {
+      if (self.seq.body.seq.submessages[0].body?.octetstring) {
+        self.ftype = self.seq.body.seq.submessages[0].body.octetstring.value;
+      }
+      if (self.seq.body.seq.submessages[1].head.tag.tpe == asn1::ASN1Type::SEQUENCE) {
+        self.substrings = self.seq.body.seq.submessages[1];
+      }
+    }
+    # TODO: if we want to descend deeper into the substrings filter
+    # if (self?.substrings) {
+    #
+    #}
+  }
+
+};
+
+type SearchFilter = unit(depth: uint32) {
+  var filterType: FilterType = FilterType::NOT_SET;
+  var filterBytes: bytes = b"";
+
+  filter : asn1::ASN1Message(True, depth) {
+    if (self.filter?.application_id) {
+      self.filterType = cast<FilterType>(cast<uint8>(self.filter.application_id));
+      self.filterBytes = self.filter.application_data;
+    } else {
+      self.filterType = FilterType::FILTER_INVALID;
+    }
+  }
+
+  # TODO: parse search request filter as per
+  #    https://tools.ietf.org/html/rfc4511#section-4.5.1.7
+  # This descent gets pretty involved... I wonder what is
+  # the best way to represent this as a string in a log.
+  # I've just left some of them as asn1::ASN1Message for now.
+
+  switch ( self.filterType ) {
+    FilterType::FILTER_AND -> FILTER_AND: asn1::ASN1Message(True, depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_OR -> FILTER_OR: asn1::ASN1Message(True, depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_NOT -> FILTER_NOT: SearchFilter(depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_EQ -> FILTER_EQ: AttributeValueAssertion(depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_SUBSTR -> FILTER_SUBSTR: SubstringFilter(depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_GE -> FILTER_GE: AttributeValueAssertion(depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_LE -> FILTER_LE: AttributeValueAssertion(depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_PRESENT -> FILTER_PRESENT: asn1::ASN1OctetString(self.filter.head.len.len, False) &parse-from=self.filterBytes &convert=$$.value;
+    FilterType::FILTER_APPROX -> FILTER_APPROX: AttributeValueAssertion(depth+1) &parse-from=self.filterBytes;
+    FilterType::FILTER_EXT -> FILTER_EXT: asn1::ASN1Message(True, depth+1) &parse-from=self.filterBytes;
+    * -> unknownFilter: void &parse-from=self.filterBytes;
+  };
+};
 
 type SearchRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-#  baseObject: asn1::ASN1MessageBase &convert=$$.body.octetstring;
-#  scope: asn1::ASN1MessageBase &convert=cast<SearchScope>(cast<uint8>($$.body.num_value))
-#                           &default=SearchScope::SEARCH_NOT_SET;
-#  deref: asn1::ASN1MessageBase &convert=cast<SearchDerefAlias>(cast<uint8>($$.body.num_value))
-#                           &default=SearchDerefAlias::DEREF_NOT_SET;
-#  sizeLimit: asn1::ASN1MessageBase &convert=$$.body.num_value;
-#  timeLimit: asn1::ASN1MessageBase &convert=$$.body.num_value;
-#  typesOnly: asn1::ASN1MessageBase &convert=cast<bool>($$.body.bool_value);
-#  filter: SearchFilter;
-#  attributes: AttributeSelection;
+
+  baseObject: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
+  scope: asn1::ASN1Message(True, self.depth) &convert=cast<SearchScope>(cast<uint8>($$.body.num_value))
+                                             &default=SearchScope::NOT_SET;
+  deref: asn1::ASN1Message(True, self.depth) &convert=cast<SearchDerefAlias>(cast<uint8>($$.body.num_value))
+                                             &default=SearchDerefAlias::NOT_SET;
+  sizeLimit: asn1::ASN1Message(True, self.depth) &convert=$$.body.num_value &default=0;
+  timeLimit: asn1::ASN1Message(True, self.depth) &convert=$$.body.num_value &default=0;
+  typesOnly: asn1::ASN1Message(True, self.depth) &convert=cast<bool>($$.body.bool_value) &default=False;
+  filter: SearchFilter(self.depth);
+  attributes: AttributeSelection(self.depth);
 
   on %done {
-    # message.obj = self.baseObject.value;
+    message.obj = self.baseObject.decode();
+    message.arg = "%s" % self.scope;
     print "SearchRequest", message.messageID, self;
   }
 };
 
 type SearchResultEntry = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # objectName: asn1::ASN1MessageBase &convert=$$.body.octetstring;
+  # objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
 
   # TODO: parse attributes PartialAttributeList
 
@@ -336,7 +384,8 @@ type SearchResultEntry = unit(inout message: Message) {
 
 type SearchResultDone = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # result: Result;
+
+  result: Result(self.depth+1);
 
   on %done {
     # message.result = self.result;
@@ -361,7 +410,7 @@ type SearchResultReference = unit(inout message: Message) {
 
 type ModifyRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # objectName: asn1::ASN1MessageBase &convert=$$.body.octetstring;
+  # objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
 
   # TODO: parse changes
 
@@ -373,7 +422,8 @@ type ModifyRequest = unit(inout message: Message) {
 
 type ModifyResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # result: Result;
+
+  result: Result(self.depth+1);
 
   on %done {
     # message.result = self.result;
@@ -397,7 +447,8 @@ type AddRequest = unit(inout message: Message) {
 
 type AddResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # result: Result;
+
+  result: Result(self.depth+1);
 
   on %done {
     # message.result = self.result;
@@ -411,7 +462,7 @@ type AddResponse = unit(inout message: Message) {
 
 type DelRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # objectName: asn1::ASN1MessageBase &convert=$$.body.octetstring;
+  # objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
 
   on %done {
     # message.obj = self.objectName.value;
@@ -421,7 +472,8 @@ type DelRequest = unit(inout message: Message) {
 
 type DelResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # result: Result;
+
+  result: Result(self.depth+1);
 
   on %done {
     # message.result = self.result;
@@ -445,7 +497,8 @@ type ModDNRequest = unit(inout message: Message) {
 
 type ModDNResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # result: Result;
+
+  result: Result(self.depth+1);
 
   on %done {
     # message.result = self.result;
@@ -469,7 +522,8 @@ type CompareRequest = unit(inout message: Message) {
 
 type CompareResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # result: Result;
+
+  result: Result(self.depth+1);
 
   on %done {
     # message.result = self.result;
@@ -483,10 +537,11 @@ type CompareResponse = unit(inout message: Message) {
 
 type AbandonRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # messageID: asn1::ASN1MessageBase &convert=$$.body.num_value;
+  # messageID: asn1::ASN1Message(True, self.depth) &convert=$$.body.num_value;
 
   on %done {
     # TODO: can't do string -> bytes
+    # but see https://github.com/zeek/spicy/issues/911 for next release
     # message.obj = "%d" % (self.messageID);
     print "AbandonRequest", message.messageID, self;
   }
@@ -498,6 +553,7 @@ type AbandonRequest = unit(inout message: Message) {
 
 type ExtendedRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
+
   # TODO: parse ExtendedRequest sequence
 
   on %done {
@@ -507,6 +563,7 @@ type ExtendedRequest = unit(inout message: Message) {
 
 type ExtendedResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
+
   # TODO: parse ExtendedRequest sequence
 
   on %done {
@@ -521,6 +578,7 @@ type ExtendedResponse = unit(inout message: Message) {
 
 type IntermediateResponse = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
+
   # TODO: parse IntermediateResponse sequence
 
   on %done {

@@ -241,13 +241,13 @@ event ldap::searchreq(c: connection,
 
   set_session(c, message_id, ldap::ProtocolOpcode_SEARCH_REQUEST);
 
-  if ( scope != ldap::SearchScope_SEARCH_NOT_SET ) {
+  if ( scope != ldap::SearchScope_NOT_SET ) {
     if ( ! c$ldap_searches[message_id]?$scope )
       c$ldap_searches[message_id]$scope = set();
     add c$ldap_searches[message_id]$scope[scope];
   }
 
-  if ( deref != ldap::SearchDerefAlias_DEREF_NOT_SET ) {
+  if ( deref != ldap::SearchDerefAlias_NOT_SET ) {
     if ( ! c$ldap_searches[message_id]?$deref )
       c$ldap_searches[message_id]$deref = set();
     add c$ldap_searches[message_id]$deref[deref];

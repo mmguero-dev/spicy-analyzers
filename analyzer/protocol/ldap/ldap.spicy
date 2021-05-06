@@ -203,7 +203,7 @@ type BindResponse = unit(inout message: Message) {
   # TODO: if we want to parse SASL credentials returned
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "BindResponse", message.messageID, self;
   }
 };
@@ -372,12 +372,13 @@ type SearchRequest = unit(inout message: Message) {
 
 type SearchResultEntry = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
 
-  # TODO: parse attributes PartialAttributeList
+  objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
+  # TODO: if we want to descend down into PartialAttributeList
+  attributes: asn1::ASN1Message(True, self.depth);
 
   on %done {
-    # message.obj = self.objectName.value;
+    message.obj = self.objectName.decode();
     print "SearchResultEntry", message.messageID, self;
   }
 };
@@ -388,7 +389,7 @@ type SearchResultDone = unit(inout message: Message) {
   result: Result(self.depth+1);
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "SearchResultDone", message.messageID, self;
   }
 };
@@ -410,12 +411,13 @@ type SearchResultReference = unit(inout message: Message) {
 
 type ModifyRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
+
+  objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
 
   # TODO: parse changes
 
   on %done {
-    # message.obj = self.objectName.value;
+    message.obj = self.objectName.decode();
     print "ModifyRequest", message.messageID, self;
   }
 };
@@ -426,7 +428,7 @@ type ModifyResponse = unit(inout message: Message) {
   result: Result(self.depth+1);
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "ModifyResponse", message.messageID, self;
   }
 };
@@ -451,7 +453,7 @@ type AddResponse = unit(inout message: Message) {
   result: Result(self.depth+1);
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "AddResponse", message.messageID, self;
   }
 };
@@ -462,10 +464,11 @@ type AddResponse = unit(inout message: Message) {
 
 type DelRequest = unit(inout message: Message) {
   var depth: uint32 = message.seq.body.seq.submessages[1].depth+1;
-  # objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
+
+  objectName: asn1::ASN1Message(True, self.depth) &convert=$$.body.octetstring.value;
 
   on %done {
-    # message.obj = self.objectName.value;
+    message.obj = self.objectName.decode();
     print "DelRequest", message.messageID, self;
   }
 };
@@ -476,7 +479,7 @@ type DelResponse = unit(inout message: Message) {
   result: Result(self.depth+1);
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "DelResponse", message.messageID, self;
   }
 };
@@ -501,7 +504,7 @@ type ModDNResponse = unit(inout message: Message) {
   result: Result(self.depth+1);
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "ModDNResponse", message.messageID, self;
   }
 };
@@ -526,7 +529,7 @@ type CompareResponse = unit(inout message: Message) {
   result: Result(self.depth+1);
 
   on %done {
-    # message.result = self.result;
+    message.result = self.result;
     print "CompareResponse", message.messageID, self;
   }
 };

@@ -30,13 +30,12 @@ export {
     # result diagnostic message(s)
     diagnostic_message: vector of string &log &optional;
 
-    # object(s) (eg., search strings, some other arguments of whatever operations)
+    # object(s)
     object: vector of string &log &optional;
 
-    # The analyzer ID used for the analyzer instance attached
-    # to each connection.  It is not used for logging since it's a
-    # meaningless arbitrary number.
-    analyzer_id: count &optional;
+    # argument(s)
+    argument: vector of string &log &optional;
+
   };
 
   #############################################################################
@@ -72,10 +71,6 @@ export {
     # result diagnostic message(s)
     diagnostic_message: vector of string &log &optional;
 
-    # The analyzer ID used for the analyzer instance attached
-    # to each connection.  It is not used for logging since it's a
-    # meaningless arbitrary number.
-    analyzer_id: count &optional;
   };
 
   # Event that can be handled to access the ldap record as it is sent on
@@ -90,7 +85,8 @@ export {
                               result: ldap::ResultCode,
                               matched_dn: string,
                               diagnostic_message: string,
-                              object: string);
+                              object: string,
+                              argument: string);
 
 }
 
@@ -132,27 +128,18 @@ function set_session(c: connection, message_id: int, opcode: ldap::ProtocolOpcod
   if (! c?$ldap_searches )
     c$ldap_searches = table();
 
-  local aid: count = 0;
   if ((opcode in OPCODES_SEARCH) && (message_id !in c$ldap_searches)) {
-    if ( 0 in c$ldap_messages ) {
-      aid = c$ldap_messages[0]$analyzer_id;
-    }
     c$ldap_searches[message_id] = [$ts=network_time(),
                                    $uid=c$uid,
                                    $id=c$id,
                                    $message_id=message_id,
-                                   $result_count=0,
-                                   $analyzer_id=aid];
+                                   $result_count=0];
 
-  } else if ((opcode !in OPCODES_SEARCH) && (message_id !in c$ldap_searches)) {
-    if ( 0 in c$ldap_messages ) {
-      aid = c$ldap_messages[0]$analyzer_id;
-    }
+  } else if ((opcode !in OPCODES_SEARCH) && (message_id !in c$ldap_messages)) {
     c$ldap_messages[message_id] = [$ts=network_time(),
                                    $uid=c$uid,
                                    $id=c$id,
-                                   $message_id=message_id,
-                                   $analyzer_id=aid];
+                                   $message_id=message_id];
   }
 
 }
@@ -160,13 +147,8 @@ function set_session(c: connection, message_id: int, opcode: ldap::ProtocolOpcod
 #############################################################################
 event protocol_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &priority=5 {
 
-  # todo: UDP hasn't been implemented/tested yet
-  # atype == Analyzer::ANALYZER_SPICY_LDAP_UDP
+  # todo: do we really need to do anything here?
 
-  if ( atype == Analyzer::ANALYZER_SPICY_LDAP_TCP ) {
-    set_session(c, 0, ldap::ProtocolOpcode_NOT_SET);
-    c$ldap_messages[0]$analyzer_id = aid;
-  }
 }
 
 #############################################################################
@@ -176,7 +158,8 @@ event ldap::message(c: connection,
                     result: ldap::ResultCode,
                     matched_dn: string,
                     diagnostic_message: string,
-                    object: string) {
+                    object: string,
+                    argument: string) {
 
   if (opcode == ldap::ProtocolOpcode_SEARCH_RESULT_DONE) {
     set_session(c, message_id, opcode);
@@ -221,6 +204,12 @@ event ldap::message(c: connection,
       c$ldap_messages[message_id]$object += object;
     }
 
+    if ( argument != "" ) {
+      if ( ! c$ldap_messages[message_id]?$argument )
+        c$ldap_messages[message_id]$argument = vector();
+      c$ldap_messages[message_id]$argument += argument;
+    }
+
     if (opcode in OPCODES_FINISHED) {
       Log::write(ldap::LDAP_LOG, c$ldap_messages[message_id]);
       delete c$ldap_messages[message_id];
@@ -257,6 +246,19 @@ event ldap::searchreq(c: connection,
     if ( ! c$ldap_searches[message_id]?$base_object )
       c$ldap_searches[message_id]$base_object = vector();
     c$ldap_searches[message_id]$base_object += base_object;
+  }
+
+}
+
+#############################################################################
+event ldap::searchres(c: connection,
+                      message_id: int,
+                      object_name: string) {
+
+  set_session(c, message_id, ldap::ProtocolOpcode_SEARCH_RESULT_ENTRY);
+
+  if ( object_name != "" ) {
+    c$ldap_searches[message_id]$result_count += 1;
   }
 
 }

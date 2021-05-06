@@ -3,14 +3,10 @@ module ldap_zeek;
 import zeek;
 import ldap;
 
-on ldap::MessageBody::%done {
+on ldap::Message::%done {
   zeek::confirm_protocol();
 }
 
 on ldap::Message::%error {
-  zeek::reject_protocol("error while parsing LDAP message header");
-}
-
-on ldap::MessageBody::%error {
-  zeek::reject_protocol("error while parsing LDAP message body");
+  zeek::reject_protocol("error while parsing LDAP message");
 }
